@@ -84,7 +84,15 @@ public:
             // 2. Prepare Planner Configuration
             algorithm_config_t config = planner_config_;
             config.sweeping_alt = req.target_sweeping_height; 
-            
+
+            // Explicitly set critical solver parameters that are not loaded from YAML
+            config.decomposition_type = BOUSTROPHEDON_DECOMPOSITION;
+            config.min_sub_polygons_per_uav = 1;
+
+            // Calculate total energy capacity for max_single_path_energy
+            EnergyCalculator energy_calc(config.energy_calculator_config);
+            config.max_single_path_energy = energy_calc.get_hover_power() * 3600.0; // Rough approximation of 1 hour capacity for prototype
+
             // Update drone count based on request if possible, or keep default
             config.number_of_drones = req.initial_drone_positions.size() > 0 ? 
                                      req.initial_drone_positions.size() : config.number_of_drones;
@@ -148,7 +156,7 @@ public:
 private:
     ros::NodeHandle nh_;
     ros::ServiceServer service_;
-    algorithm_config_t planner_config_;
+    algorithm_config_t planner_config_{};
 };
 
 int main(int argc, char** argv) {

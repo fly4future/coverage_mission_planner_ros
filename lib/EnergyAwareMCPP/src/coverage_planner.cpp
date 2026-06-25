@@ -405,6 +405,20 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config)
                                                         const ShortestPathCalculator& shortest_path_calculator,
                                                         std::shared_ptr<loggers::SimpleLogger>& logger)
 {
+  std::cout << "[DEBUG solve_for_uavs] n_uavs: " << n_uavs << std::endl;
+  std::cout << "[DEBUG solve_for_uavs] algorithm_config: "
+            << "number_of_rotations=" << algorithm_config.number_of_rotations
+            << ", decomposition_type=" << (int)algorithm_config.decomposition_type
+            << ", sweeping_step=" << algorithm_config.sweeping_step
+            << ", sweeping_alt=" << algorithm_config.sweeping_alt
+            << ", min_sub_polygons_per_uav=" << algorithm_config.min_sub_polygons_per_uav
+            << ", start_pos=(" << algorithm_config.start_pos.first << ", " << algorithm_config.start_pos.second << ")"
+            << ", max_single_path_energy=" << algorithm_config.max_single_path_energy << std::endl;
+  std::cout << "[DEBUG solve_for_uavs] search_areas size: " << search_areas.size() << std::endl;
+  for (size_t i = 0; i < search_areas.size(); ++i) {
+    std::cout << "[DEBUG solve_for_uavs] search_area[" << i << "] area: " << search_areas[i].area() << std::endl;
+  }
+
   if (search_areas.empty()) {
     logger->log_err("solve_for_uavs called with no search areas.");
     return {};
