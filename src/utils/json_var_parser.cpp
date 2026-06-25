@@ -1,7 +1,7 @@
-#include "iroc_fleet_manager/utils/json_var_parser.h"
+#include "mrs_coverage_planner/utils/json_var_parser.h"
 #include <ros/ros.h>
 
-namespace iroc_fleet_manager
+namespace mrs_coverage_planner
 {
 
 namespace utils
@@ -98,4 +98,4 @@ bool parseVars(const json &js, std::vector<std::pair<std::string_view, parseable
 }
 
 } // namespace utils
-} // namespace iroc_fleet_manager
+} // namespace mrs_coverage_planner

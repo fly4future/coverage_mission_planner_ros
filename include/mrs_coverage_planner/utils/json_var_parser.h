@@ -1,10 +1,10 @@
 #pragma once
 
 #include <nlohmann/json.hpp>
-#include "iroc_fleet_manager/utils/types.h"
+#include "mrs_coverage_planner/utils/types.h"
 #include <variant>
 
-namespace iroc_fleet_manager
+namespace mrs_coverage_planner
 {
 
 namespace utils
@@ -20,4 +20,5 @@ using parseable_t = std::variant<json *, bool *, int *, double *, std::string *,
 bool parseVars(const json &js, std::vector<std::pair<std::string_view, parseable_t>> &&vars);
 
 } // namespace utils
-} // namespace iroc_fleet_manager
+} // namespace mrs_coverage_planner
+r

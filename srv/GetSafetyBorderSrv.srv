@@ -1,4 +1,0 @@
----
-bool success
-string message
-mrs_msgs/SafetyBorder border

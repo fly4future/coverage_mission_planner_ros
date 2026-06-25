@@ -1,13 +1,11 @@
 #pragma once
 
-#include "iroc_fleet_manager/utils/types.h"
-#include "iroc_mission_handler/Subtask.h"
-#include "iroc_mission_handler/Waypoint.h"
+#include "mrs_coverage_planner/utils/types.h"
 #include <mrs_msgs/Reference.h>
 
 #include <vector>
 
-namespace iroc_fleet_manager {
+namespace mrs_coverage_planner {
 
 // Helper functions to simplify the ROS API
 
@@ -56,9 +54,11 @@ Msg_T toRosMsg(const custom_types::Waypoint& waypoint) {
 
   ros_waypoint.reference = toRosMsg<mrs_msgs::Reference>(waypoint.reference);
 
-  ros_waypoint.subtasks.reserve(waypoint.getSubtasks().size());
+    ros_waypoint.subtasks.reserve(waypoint.getSubtasks().size());
   for (const auto& subtask : waypoint.getSubtasks()) {
-    ros_waypoint.subtasks.emplace_back(toRosMsg<iroc_mission_handler::Subtask>(subtask));
+    // Assuming we define a local Subtask message or use a generic one. 
+    // For now, I will keep the logic but we need to ensure the target type for toRosMsg exists.
+    ros_waypoint.subtasks.emplace_back(toRosMsg<typename Msg_T::SubtaskType>(subtask));
   }
 
   ros_waypoint.parallel_execution = waypoint.parallel_execution;
@@ -77,4 +77,4 @@ std::vector<Msg_T> toRosMsg(const std::vector<Point_T>& points) {
 
   return result;
 }
-} // namespace iroc_fleet_manager
+} // namespace mrs_coverage_planner

@@ -13,7 +13,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace iroc_fleet_manager {
+namespace mrs_coverage_planner {
 
 // Note: ConstPtr type is a typedef for a shared pointer,
 // specifically boost::shared_ptr in ROS 1
@@ -36,5 +36,5 @@ struct CommonHandlers_t {
   std::shared_ptr<CommonRobotHandlers_t> handlers;
 };
 
-} // namespace iroc_fleet_manager
+} // namespace mrs_coverage_planner
 

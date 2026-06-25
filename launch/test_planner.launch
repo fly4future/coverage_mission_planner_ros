@@ -1,0 +1,8 @@
+<launch>
+    <node name="mrs_coverage_planner_node" pkg="mrs_coverage_planner" type="mrs_coverage_planner_node" output="screen">
+        <rosparam command="load" file="$(find mrs_coverage_planner)/config/standalone_coverage_planner.yaml" ns="" />
+        
+        <param name="latitude_origin" type="double" value="49.228330" />
+        <param name="longitude_origin" type="double" value="15.225238" />
+    </node>
+</launch>

@@ -23,9 +23,10 @@
   <group ns="$(arg GS_NS)">
 
     <!-- IROCFleetManager nodelet -->
-    <node pkg="nodelet" type="nodelet" name="iroc_fleet_manager" args="$(arg nodelet) iroc_fleet_manager/IROCFleetManager $(arg nodelet_manager)" launch-prefix="$(arg launch_prefix_debug)" output="screen">
+    <node pkg="mrs_coverage_planner" type="mrs_coverage_planner_node" name="mrs_coverage_planner" output="screen">
+      <param name="config" value="$(find mrs_coverage_planner)/config/config.yaml" />
+    </node>
 
-      <param name="config" value="$(find iroc_fleet_manager)/config/config.yaml" />
 
       <param if="$(eval arg('network_config') == '')" name="network_config" value="" />
       <param if="$(eval not arg('network_config') == '' and arg('network_config')[0] == '/')" name="network_config" value="$(arg network_config)" />

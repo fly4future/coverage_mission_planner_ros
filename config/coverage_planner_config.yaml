@@ -37,11 +37,11 @@ fleet_manager:
 
       # These values are used only if the points_in_lat_lon is set to true
       # To be replaced when set_origin is integrated
-      latitude_origin: 47.397743
-      longitude_origin: 8.545594
+      latitude_origin: 49.228330
+      longitude_origin: 15.225238
 
       # Sweeping step in meters
-      sweeping_step: 6
+      sweeping_step: 2
 
       # 0 for Trapezoidal decomposition
       # 1 for Boustrophedon decomposition

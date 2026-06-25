@@ -1,0 +1,28 @@
+# Algorithm tuning
+sweeping_step: 2
+number_of_drones: 1
+number_of_rotations: 3
+points_in_lat_lon: true
+latitude_origin: 49.228330
+longitude_origin: 15.225238
+
+# Drone characteristics
+drone_mass: 3.2 # [kg]
+drone_area: 0.07 # [m^2]
+average_acceleration: 2 # [m/s^2]
+propeller_radius: 0.19 # [m]
+number_of_propellers: 4
+allowed_path_deviation: 2 # [m]
+
+# Battery model
+cell_capacity: 5 # [Ah]
+number_of_cells: 4
+d0: 0.99876
+d1: -0.0020
+d2: -5.2484e-05
+d3: 1.2230e-07
+
+# Best speed model
+c0: 0.041546
+c1: 0.041122
+c2: 0.00053292

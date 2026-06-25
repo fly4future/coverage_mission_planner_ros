@@ -1,34 +1,29 @@
 <?xml version="1.0"?>
 <package format="2">
-
-  <name>iroc_fleet_manager</name>
-  <version>1.0.0</version>
-  <description>Node for handling fleet mission execution</description>
-
-  <maintainer email="rivera@fly4future.com">Marlon Rivera</maintainer>
-  <author email="rivera@fly4future.com">Marlon Rivera</author>
-
+  <name>mrs_coverage_planner</name>
+  <version>0.0.1</version>
+  <description>The mrs_coverage_planner package</description>
+  <maintainer email="robin@todo.todo">robin</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>cmake_modules</depend>
-  <depend>roscpp</depend>
-  <depend>nodelet</depend>
-  <depend>sensor_msgs</depend>
-  <depend>genmsg</depend>
-  <depend>actionlib</depend>
-  <depend>actionlib_msgs</depend>
-  <depend>mrs_msgs</depend>
-  <depend>mrs_robot_diagnostics</depend>
-  <depend>mrs_lib</depend>
-  <depend>iroc_mission_handler</depend>
-  <depend>geometry_msgs</depend>
-  <depend>pluginlib</depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>mrs_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
 
-  <export>
-    <nodelet plugin="${prefix}/nodelets.xml" />
-    <iroc_fleet_manager plugin="${prefix}/plugins.xml" />
-  </export>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>mrs_msgs</build_export_depend>
+  <build_export_depend>message_runtime</build_export_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>mrs_msgs</exec_depend>
+  <exec_depend>message_runtime</exec_depend>
 
 </package>

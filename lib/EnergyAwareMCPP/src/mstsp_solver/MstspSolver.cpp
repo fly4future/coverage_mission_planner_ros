@@ -4,6 +4,7 @@
 #include "EnergyAwareMCPP/algorithms.hpp"
 #include <algorithm>
 #include <list>
+#include <queue>
 
 /* remove_path_heading() //{ */
 
@@ -129,51 +130,57 @@ namespace mstsp_solver
     _instance_solution_t current_solution(m_config.n_uavs);
     auto target_sets = m_target_sets;
 
-    // initial search in close neighborhood
-    // - Find all the possible insertions of each target in each path
-    // - Calculate the new paths cost of the insertion
-    // - Take 1/4 of best insertions
-    // - Randomly choose one of them and insert it
-    // - Go to first step
     while (!target_sets.empty())
     {
-      std::vector<Insertion> possible_insertions;
+      // Use a max-priority queue to maintain only the top N best (lowest cost) candidates.
+      // We use InsertionComp as a max-heap so the worst of the "best" is at the top for easy removal.
+      std::priority_queue<Insertion, std::vector<Insertion>, InsertionComp> best_candidates;
+      const size_t MAX_CANDIDATES = 500;
+
       for (size_t i = 0; i < target_sets.size(); ++i)
       {
-        //                std::cout << "i: " <<  i << std::endl;
         for (size_t j = 0; j < m_config.n_uavs; ++j)
         {
-          //                    std::cout << "j: " <<  j << std::endl;
           for (size_t k = 0; k <= current_solution[j].size(); ++k)
           {
-            //                        std::cout << "k: " <<  k << std::endl;
-            // TODO: maybe, choose just one insertion from all of the next loop
             for (size_t target_id = 0; target_id < target_sets[i].targets.size(); ++target_id)
             {
-              //                            std::cout << "target_id: " << target_id << std::endl;
               std::vector<Target> current_route = current_solution[j];
               current_route.insert(current_route.begin() + static_cast<long>(k), target_sets[i].targets[target_id]);
               double cost = get_path_cost(current_route);
-              possible_insertions.push_back(Insertion{cost, i, target_id, j, k});
+
+              if (best_candidates.size() < MAX_CANDIDATES) {
+                best_candidates.push({cost, i, target_id, j, k});
+              } else if (cost < best_candidates.top().solution_cost) {
+                best_candidates.pop();
+                best_candidates.push({cost, i, target_id, j, k});
+              }
             }
           }
         }
       }
-      std::sort(possible_insertions.begin(), possible_insertions.end(),
-                [](const Insertion& i1, const Insertion& i2) { return i1.solution_cost < i2.solution_cost; });
-      //            target_sets.erase(target_sets.begin());
-      m_logger->log_debug("Possible insertions number " + std::to_string(possible_insertions.size()));
-      size_t size_reduced = possible_insertions.size() / 4;
-      // Could generate random numbers better, but let it be. We don't need a perfect uniformity
-      size_t random = generate_random_number() % (size_reduced + 1);
-      if (random >= possible_insertions.size())
-      {
-        random = possible_insertions.size() - 1;
-      }
-      Insertion chosen_insertion = possible_insertions[random];
 
-      //            std::cout << "Chosen target target set: " <<
-      //            target_sets[chosen_insertion.target_set_index].targets[chosen_insertion.target_index].target_set_index << std::endl;
+      if (best_candidates.empty()) break;
+
+      // Move candidates to a vector for random selection
+      std::vector<Insertion> candidates;
+      while (!best_candidates.empty()) {
+        candidates.push_back(best_candidates.top());
+        best_candidates.pop();
+      }
+      // candidates is now sorted from worst-to-best (due to max-heap)
+
+      m_logger->log_debug("Best candidates pool size: " + std::to_string(candidates.size()));
+
+      // Select from the top 1/4 of the best candidates
+      size_t pool_size = candidates.size();
+      size_t search_range = pool_size / 4;
+      if (search_range == 0) search_range = 1;
+
+      // Since candidates[0] is the worst of the best and candidates[last] is the absolute best,
+      // we sample from the end of the vector.
+      size_t random_idx = pool_size - 1 - (generate_random_number() % search_range);
+      Insertion chosen_insertion = candidates[random_idx];
 
       current_solution[chosen_insertion.uav_index].emplace(
           current_solution[chosen_insertion.uav_index].begin() + static_cast<long>(chosen_insertion.insertion_index),
@@ -182,7 +189,7 @@ namespace mstsp_solver
     }
     return current_solution;
   }
- //}
+  //}
 
 /* get_drones_paths() //{ */
 

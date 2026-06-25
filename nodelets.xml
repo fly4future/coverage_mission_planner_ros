@@ -1,5 +1,0 @@
-<library path="lib/libIROCFleetManager">
-  <class name="iroc_fleet_manager/IROCFleetManager" type="iroc_fleet_manager::IROCFleetManager" base_class_type="nodelet::Nodelet">
-    <description>IROCFleetManager nodelet</description>
-  </class>
-</library>

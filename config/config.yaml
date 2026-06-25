@@ -23,7 +23,8 @@ fleet_manager:
       name_space: "coverage_planner" 
 
     AutonomyTestPlanner:
-      address: "iroc_fleet_manager/AutonomyTestPlanner" 
+      address: "mrs_coverage_planner/AutonomyTestPlanner"
+ 
       name_space: "autonomy_test_planner" 
 
     # rate to update the common handlers

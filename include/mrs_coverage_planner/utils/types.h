@@ -2,7 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace iroc_fleet_manager
+namespace mrs_coverage_planner
 {
 
 namespace custom_types
@@ -107,4 +107,4 @@ struct Waypoint
   };
 
 } // namespace custom_types
-} // namespace iroc_fleet_manager
+} // namespace mrs_coverage_planner

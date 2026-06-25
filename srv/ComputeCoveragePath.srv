@@ -1,0 +1,20 @@
+# REQUEST (Input arguments sent to the planner node)
+geometry_msgs/Point[] initial_drone_positions
+geometry_msgs/Polygon[] fly_zones
+geometry_msgs/Polygon[] no_fly_zones
+
+# Optional restrictions: maps points to an altitude limit threshold
+geometry_msgs/Polygon[] hr_no_fly_zones
+float64[] hr_no_fly_depths
+
+float64[] min_horizontal_distances
+float64[] min_vertical_distances
+float64 target_sweeping_height
+
+---
+# RESPONSE (Output blueprints returned by the planner node)
+bool success
+string message
+
+# A collection of paths (one complete reference array per drone)
+mrs_msgs/TrajectoryReference[] drone_paths
