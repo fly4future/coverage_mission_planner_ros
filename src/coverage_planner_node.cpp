@@ -66,12 +66,6 @@ public:
                 fly_zones.push_back(poly);
             }
 
-            // For the prototype, we'll use the first fly zone if available
-            mrs_coverage_planner::polygon_t fly_zone;
-            if (!fly_zones.empty()) {
-                fly_zone = fly_zones[0];
-            }
-
             std::vector<mrs_coverage_planner::polygon_t> no_fly_zones;
             for (const auto& poly : req.no_fly_zones) {
                 mrs_coverage_planner::polygon_t nfz;
@@ -102,20 +96,32 @@ public:
             for (const auto& p : req.initial_drone_positions) {
                 initial_positions.push_back({p.x, p.y});
             }
-            if (initial_positions.empty() && !fly_zone.empty()) {
-                initial_positions.push_back(fly_zone[0]);
+            if (initial_positions.empty() && !fly_zones.empty()) {
+                initial_positions.push_back(fly_zones[0][0]);
             } else if (initial_positions.empty()) {
                 initial_positions.push_back({0.0, 0.0});
             }
 
-            // 3. Call the Core Planning Algorithm
+            // Dynamic generation of safety buffers from request vector frames
+            std::vector<double> min_horiz = req.min_horizontal_distances;
+            std::vector<double> min_vert = req.min_vertical_distances;
+
+            // Fallback safeguards to prevent crashes if arrays are passed empty
+            if (min_horiz.empty()) {
+                min_horiz = std::vector<double>(initial_positions.size(), 1.0);
+            }
+            if (min_vert.empty()) {
+                min_vert = std::vector<double>(initial_positions.size(), 1.0);
+            }
+
+            // 3. Call the Core Planning Algorithm with all fly zones and matched distance vectors
             auto paths = mrs_coverage_planner::planStandaloneMission(
                 initial_positions,
-                {fly_zone},
+                fly_zones,
                 no_fly_zones,
                 {}, // No HR NFZs for now
-                {1.0}, // Default min_horiz
-                {1.0}, // Default min_vert
+                min_horiz,
+                min_vert,
                 config,
                 req.target_sweeping_height
             );
