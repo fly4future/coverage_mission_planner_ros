@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <geometry_msgs/Polygon.h>
 #include <mrs_coverage_planner/ComputeCoveragePath.h>
 #include <mrs_coverage_planner/coverage_planner_core.h>
@@ -11,40 +12,18 @@
 #include <vector>
 #include <string>
 
+
+
 class CoveragePlannerNode {
 public:
     CoveragePlannerNode() : nh_("~") {
         mrs_lib::ParamLoader param_loader(nh_);
-        
-        // 1. Load Algorithm Config
-        planner_config_.lat_lon_origin = {
-            param_loader.loadParam2<double>("latitude_origin", 49.228330), 
-            param_loader.loadParam2<double>("longitude_origin", 15.225238)
-        };
-        planner_config_.points_in_lat_lon = param_loader.loadParam2<bool>("points_in_lat_lon", true);
-        planner_config_.sweeping_step = param_loader.loadParam2<double>("sweeping_step", 1.0);
-        planner_config_.number_of_drones = param_loader.loadParam2<int>("number_of_drones", 1);
-        planner_config_.number_of_rotations = param_loader.loadParam2<int>("number_of_rotations", 3);
-        
-        // 2. Load Energy Calculator Config
-        auto& ec = planner_config_.energy_calculator_config;
-        ec.drone_mass = param_loader.loadParam2<double>("drone_mass", 3.2);
-        ec.propeller_radius = param_loader.loadParam2<double>("propeller_radius", 0.19);
-        ec.number_of_propellers = param_loader.loadParam2<int>("number_of_propellers", 4);
-        ec.average_acceleration = param_loader.loadParam2<double>("average_acceleration", 2.0);
-        ec.drone_area = param_loader.loadParam2<double>("drone_area", 0.07);
-        ec.allowed_path_deviation = param_loader.loadParam2<double>("allowed_path_deviation", 2.0);
-        
-        ec.battery_model.cell_capacity = param_loader.loadParam2<double>("cell_capacity", 5.0);
-        ec.battery_model.number_of_cells = param_loader.loadParam2<int>("number_of_cells", 4);
-        ec.battery_model.d0 = param_loader.loadParam2<double>("d0", 0.99876);
-        ec.battery_model.d1 = param_loader.loadParam2<double>("d1", -0.0020);
-        ec.battery_model.d2 = param_loader.loadParam2<double>("d2", -5.2484e-05);
-        ec.battery_model.d3 = param_loader.loadParam2<double>("d3", 1.2230e-07);
-
-        ec.best_speed_model.c0 = param_loader.loadParam2<double>("c0", 0.041546);
-        ec.best_speed_model.c1 = param_loader.loadParam2<double>("c1", 0.041122);
-        ec.best_speed_model.c2 = param_loader.loadParam2<double>("c2", 0.00053292);
+        param_loader.addYamlFile(ros::package::getPath("mrs_coverage_planner") + "/config/coverage_planner_config.yaml");
+        planner_config_ = parse_algorithm_config(param_loader);
+        if (!param_loader.loadedSuccessfully()) {
+            ROS_ERROR("[CoveragePlannerNode]: Could not load all parameters!");
+            exit(1);
+        }
         
         service_ = nh_.advertiseService("compute_coverage_path", &CoveragePlannerNode::handleComputePathRequest, this);
         ROS_INFO("[CoveragePlannerNode]: Service initialized.");
@@ -157,6 +136,59 @@ public:
         return true;
     }
 
+    // Maybe move to lib?:
+    algorithm_config_t parse_algorithm_config(mrs_lib::ParamLoader &param_loader) const {
+    const std::string yaml_prefix = "fleet_manager/planners/coverage_planner/";
+    algorithm_config_t algorithm_config;
+
+    // Load basic drone parameters
+    param_loader.loadParam(yaml_prefix + "drone_mass", algorithm_config.energy_calculator_config.drone_mass);
+    param_loader.loadParam(yaml_prefix + "drone_area", algorithm_config.energy_calculator_config.drone_area);
+    param_loader.loadParam(yaml_prefix + "average_acceleration", algorithm_config.energy_calculator_config.average_acceleration);
+    param_loader.loadParam(yaml_prefix + "propeller_radius", algorithm_config.energy_calculator_config.propeller_radius);
+    param_loader.loadParam(yaml_prefix + "number_of_propellers", algorithm_config.energy_calculator_config.number_of_propellers);
+    param_loader.loadParam(yaml_prefix + "allowed_path_deviation", algorithm_config.energy_calculator_config.allowed_path_deviation);
+    param_loader.loadParam(yaml_prefix + "number_of_rotations", algorithm_config.number_of_rotations);
+
+    // Load battery model parameters
+    const std::string battery_prefix = yaml_prefix + "battery_model/";
+    param_loader.loadParam(battery_prefix + "cell_capacity", algorithm_config.energy_calculator_config.battery_model.cell_capacity);
+    param_loader.loadParam(battery_prefix + "number_of_cells", algorithm_config.energy_calculator_config.battery_model.number_of_cells);
+    param_loader.loadParam(battery_prefix + "d0", algorithm_config.energy_calculator_config.battery_model.d0);
+    param_loader.loadParam(battery_prefix + "d1", algorithm_config.energy_calculator_config.battery_model.d1);
+    param_loader.loadParam(battery_prefix + "d2", algorithm_config.energy_calculator_config.battery_model.d2);
+    param_loader.loadParam(battery_prefix + "d3", algorithm_config.energy_calculator_config.battery_model.d3);
+
+    // Load speed model parameters
+    const std::string speed_prefix = yaml_prefix + "best_speed_model/";
+    param_loader.loadParam(speed_prefix + "c0", algorithm_config.energy_calculator_config.best_speed_model.c0);
+    param_loader.loadParam(speed_prefix + "c1", algorithm_config.energy_calculator_config.best_speed_model.c1);
+    param_loader.loadParam(speed_prefix + "c2", algorithm_config.energy_calculator_config.best_speed_model.c2);
+
+    // Load coordinate system parameters
+    param_loader.loadParam(yaml_prefix + "points_in_lat_lon", algorithm_config.points_in_lat_lon);
+    if (algorithm_config.points_in_lat_lon) {
+        param_loader.loadParam(yaml_prefix + "latitude_origin", algorithm_config.lat_lon_origin.first);
+        param_loader.loadParam(yaml_prefix + "longitude_origin", algorithm_config.lat_lon_origin.second);
+    }
+
+    param_loader.loadParam(yaml_prefix + "sweeping_step", algorithm_config.sweeping_step);
+
+    int decomposition_method;
+    param_loader.loadParam(yaml_prefix + "decomposition_method", decomposition_method);
+    algorithm_config.decomposition_type = static_cast<decomposition_type_t>(decomposition_method);
+
+    param_loader.loadParam(yaml_prefix + "min_sub_polygons_per_uav", algorithm_config.min_sub_polygons_per_uav);
+
+    // Load optimization parameters
+    param_loader.loadParam(yaml_prefix + "rotations_per_cell", algorithm_config.rotations_per_cell);
+    param_loader.loadParam(yaml_prefix + "no_improvement_cycles_before_stop", algorithm_config.no_improvement_cycles_before_stop);
+    param_loader.loadParam(yaml_prefix + "max_single_path_energy", algorithm_config.max_single_path_energy);
+
+    return algorithm_config;
+    }
+
+
 private:
     ros::NodeHandle nh_;
     ros::ServiceServer service_;
@@ -169,3 +201,5 @@ int main(int argc, char** argv) {
     ros::spin();
     return 0;
 }
+
+
