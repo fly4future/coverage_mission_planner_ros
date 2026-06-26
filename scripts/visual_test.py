@@ -120,8 +120,8 @@ def visualize(raw_coordinates, drone_paths):
 
     # 2. Plot Output Paths (Values returned by node are already in Local Meters)
     for i, path in enumerate(drone_paths):
-        path_x = [pt.position.x for pt in path.points]
-        path_y = [pt.position.y for pt in path.points]
+        path_x = [pt.position.y for pt in path.points]
+        path_y = [pt.position.x for pt in path.points]
 
         plt.plot(path_x, path_y, 'b-', label=f'Drone {i+1} Sweeping Path', alpha=0.8, marker='o', markersize=4)
 
