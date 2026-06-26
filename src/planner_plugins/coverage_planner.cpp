@@ -228,12 +228,44 @@ coverage_paths_t planStandaloneMission(
   MapPolygon master_obstacle_polygon(empty_master_polygon, closed_no_fly_zones, planner_config.lat_lon_origin, closed_hr_no_fly_zones);
   ShortestPathCalculator shortest_path_calculator(master_obstacle_polygon, true, target_sweeping_height);
 
-  std::vector<MapPolygon> search_areas;
+  /*std::vector<MapPolygon> search_areas;
   for (const auto& fly_zone : closed_fly_zones) {
     std::vector<std::pair<double, double>> mutable_fly_zone = fly_zone;
     MapPolygon area(mutable_fly_zone, closed_no_fly_zones, planner_config.lat_lon_origin, closed_hr_no_fly_zones);    
     search_areas.push_back(area);
+  }*/
+
+  std::vector<MapPolygon> search_areas;
+  for (size_t i = 0; i < closed_fly_zones.size(); ++i) {
+    std::vector<std::pair<double, double>> mutable_fly_zone = closed_fly_zones[i];
+    std::vector<polygon_t> specific_no_fly_zones;
+
+    // Loop through ALL incoming no-fly zones dynamically
+    for (const auto& nfz : closed_no_fly_zones) {
+        if (nfz.empty()) continue;
+
+        // Check if the obstacle belongs inside this specific fly zone canvas
+        // Using the native 'is_inside' helper function already present in your file
+        if (is_inside(nfz[0], mutable_fly_zone)) {
+            specific_no_fly_zones.push_back(nfz);
+        }
+    }
+
+    std::vector<std::pair<polygon_t, double>> specific_hr_zones;
+    for (size_t j = 0; j < closed_hr_no_fly_zones.size(); ++j) {
+        if (closed_hr_no_fly_zones[j].first.empty()) continue;
+
+        // Do the same dynamic mapping for height-restricted obstacles
+        if (is_inside(closed_hr_no_fly_zones[j].first[0], mutable_fly_zone)) {
+            specific_hr_zones.push_back(closed_hr_no_fly_zones[j]);
+        }
+    }
+
+    // Safely construct the MapPolygon grid for this area with its matched obstacles
+    MapPolygon area(mutable_fly_zone, specific_no_fly_zones, planner_config.lat_lon_origin, specific_hr_zones);    
+    search_areas.push_back(area);
   }
+
 
   // Generate sweep paths using the lower-level reference solver
   mstsp_solver::final_solution_t best_solution;
