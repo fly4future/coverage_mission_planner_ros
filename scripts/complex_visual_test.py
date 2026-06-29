@@ -78,7 +78,7 @@ def build_request():
 
     # Height Restricted Zone safely inside Zone 3
     raw_hr_zones = [
-        [(49.228420, 15.226150), (49.228520, 15.226150), (49.228520, 15.226350), (49.228420, 15.226350)]
+        [(49.228420, 15.226150), (49.228520, 15.226150), (49.228520, 15.226350), (49.228420, 15.226350),(49.228420, 15.226150)]
     ]
     req.hr_no_fly_zones = []
     for hrz_coordinates in raw_hr_zones:
@@ -139,7 +139,7 @@ def visualize_scene(fly_zones, no_fly_zones, hr_zones, drone_paths=None, is_prev
         colors = ['#1f77b4', '#9467bd', '#2ca02c']
         for i, path in enumerate(drone_paths):
             if not path.points: continue
-            meter_pts = [(pt.position.y, pt.position.x) for pt in path.points]
+            meter_pts = [gps_to_meters(pt.position.y, pt.position.x) for pt in path.points]
             path_x, path_y = [p[0] for p in meter_pts], [p[1] for p in meter_pts]
             path_z = [pt.position.z for pt in path.points]
 
@@ -170,17 +170,7 @@ if __name__ == '__main__':
     # Generate the request and coordinates locally
     req, fz, nfz, hrz = build_request()
 
-    # STEP 1: Show the isolated geometry to confirm boundaries do not touch or cross
-    #print("\n[INFO] Launching Input Configuration Preview Window...")
-    #visualize_scene(fz, nfz, hrz, is_preview=True)
-
-    # STEP 2: Explicit Confirmation Prompt
-    #user_choice = input("\n[?] Review completed. Dispatch coordinates to ROS Planner? [y/N]: ").strip().lower()
-    #if user_choice != 'y':
-    #    print("[INFO] Mission canceled by operator.")
-    #    sys.exit(0)
-
-    # STEP 3: Connect to Service and Execute
+    # Connect to Service and Execute
     service_name = '/mrs_coverage_planner_node/compute_coverage_path'
     rospy.loginfo(f"Connecting to planner service: {service_name}...")
     try:
@@ -190,7 +180,7 @@ if __name__ == '__main__':
 
         if response.success:
             rospy.loginfo(f"Success! Received paths for {len(response.drone_paths)} drones.")
-            # Step 4: Display the final result view with trajectories included
+            # Display the final result view with trajectories included
             visualize_scene(fz, nfz, hrz, drone_paths=response.drone_paths, is_preview=False)
         else:
             rospy.logwarn(f"Service calculation rejected: {response.message}")

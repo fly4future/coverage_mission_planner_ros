@@ -21,4 +21,3 @@ bool parseVars(const json &js, std::vector<std::pair<std::string_view, parseable
 
 } // namespace utils
 } // namespace mrs_coverage_planner
-r

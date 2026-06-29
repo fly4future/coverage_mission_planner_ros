@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   mrs_msgs
   geometry_msgs
   message_generation
+  mrs_robot_diagnostics
 )
 
 # 2. Generate clean ROS messages and services
@@ -19,6 +20,8 @@ add_message_files(
   FILES
   CoverageMission.msg
   CoverageMissionRobot.msg
+  CoverageMissionGoal.msg
+  CoverageMission.msg
 )
 
 add_service_files(
