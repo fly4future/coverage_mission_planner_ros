@@ -11,6 +11,7 @@ from mrs_coverage_planner.srv import ComputeCoveragePath, ComputeCoveragePathReq
 ORIGIN_LAT = 49.228330
 ORIGIN_LON = 15.225238
 
+
 def gps_to_meters(lat, lon, lat_origin=ORIGIN_LAT, lon_origin=ORIGIN_LON):
     """Converts GPS coordinates to local XY meters relative to an origin for 3D plotting."""
     METERS_IN_DEGREE = 111319.9
@@ -19,39 +20,67 @@ def gps_to_meters(lat, lon, lat_origin=ORIGIN_LAT, lon_origin=ORIGIN_LON):
     y = (lat - lat_origin) * METERS_IN_DEGREE
     return x, y
 
+
 def build_request():
     """Constructs the request payload with explicit geometric gaps."""
     req = ComputeCoveragePathRequest()
 
     # --- DYNAMIC TYPE EXTRACTION ---
     import genpy
+
     try:
-        DronePointType = req._slot_types[req.__slots__.index('initial_drone_positions')].replace('[]','')
+        DronePointType = req._slot_types[
+            req.__slots__.index("initial_drone_positions")
+        ].replace("[]", "")
         DronePtClass = genpy.message.get_message_class(DronePointType)
 
-        ZoneWrapperType = req._slot_types[req.__slots__.index('fly_zones')].replace('[]','')
+        ZoneWrapperType = req._slot_types[req.__slots__.index("fly_zones")].replace(
+            "[]", ""
+        )
         ZoneClass = genpy.message.get_message_class(ZoneWrapperType)
 
         temp_zone = ZoneClass()
         pts_field_name = temp_zone.__slots__[0]
-        PtTypeInZone = temp_zone._slot_types[temp_zone.__slots__.index(pts_field_name)].replace('[]','')
+        PtTypeInZone = temp_zone._slot_types[
+            temp_zone.__slots__.index(pts_field_name)
+        ].replace("[]", "")
         PtClassInZone = genpy.message.get_message_class(PtTypeInZone)
     except Exception as e:
-        print(f"Error resolving ROS message definitions: {e}. Ensure workspace is sourced.")
+        print(
+            f"Error resolving ROS message definitions: {e}. Ensure workspace is sourced."
+        )
         sys.exit(1)
 
     # Drones Locations
     req.initial_drone_positions = [
         DronePtClass(x=49.227900, y=15.224600, z=0.0),
         DronePtClass(x=49.228330, y=15.225238, z=0.0),
-        DronePtClass(x=49.227900, y=15.226600, z=0.0)
+        DronePtClass(x=49.227900, y=15.226600, z=0.0),
     ]
 
     # Fly Zones (Geometrically separated to prevent edge collisions)
     raw_fly_zones = [
-        [(49.228000, 15.224800), (49.228600, 15.224800), (49.228600, 15.225250), (49.228000, 15.225250), (49.228000, 15.224800)],
-        [(49.228100, 15.225350), (49.228700, 15.225350), (49.228700, 15.225850), (49.228100, 15.225850), (49.228100, 15.225350)],
-        [(49.228000, 15.225950), (49.228600, 15.225950), (49.228600, 15.226500), (49.228000, 15.226500), (49.228000, 15.225950)]
+        [
+            (49.228000, 15.224800),
+            (49.228600, 15.224800),
+            (49.228600, 15.225250),
+            (49.228000, 15.225250),
+            (49.228000, 15.224800),
+        ],
+        [
+            (49.228100, 15.225350),
+            (49.228700, 15.225350),
+            (49.228700, 15.225850),
+            (49.228100, 15.225850),
+            (49.228100, 15.225350),
+        ],
+        [
+            (49.228000, 15.225950),
+            (49.228600, 15.225950),
+            (49.228600, 15.226500),
+            (49.228000, 15.226500),
+            (49.228000, 15.225950),
+        ],
     ]
 
     req.fly_zones = []
@@ -63,22 +92,54 @@ def build_request():
 
     # No-Fly Zones nested cleanly within the boundaries
     raw_no_fly_zones = [
-        [(49.228150, 15.224900), (49.228250, 15.224900), (49.228250, 15.225100), (49.228150, 15.225100), (49.228150, 15.224900)],
-        [(49.228400, 15.225050), (49.228500, 15.225050), (49.228500, 15.225180), (49.228400, 15.225180), (49.228400, 15.225050)],
-        [(49.228300, 15.225500), (49.228450, 15.225500), (49.228450, 15.225700), (49.228300, 15.225700), (49.228300, 15.225500)],
-        [(49.228200, 15.226100), (49.228350, 15.226100), (49.228350, 15.226300), (49.228200, 15.226300), (49.228200, 15.226100)]
+        [
+            (49.228150, 15.224900),
+            (49.228250, 15.224900),
+            (49.228250, 15.225100),
+            (49.228150, 15.225100),
+            (49.228150, 15.224900),
+        ],
+        [
+            (49.228400, 15.225050),
+            (49.228500, 15.225050),
+            (49.228500, 15.225180),
+            (49.228400, 15.225180),
+            (49.228400, 15.225050),
+        ],
+        [
+            (49.228300, 15.225500),
+            (49.228450, 15.225500),
+            (49.228450, 15.225700),
+            (49.228300, 15.225700),
+            (49.228300, 15.225500),
+        ],
+        [
+            (49.228200, 15.226100),
+            (49.228350, 15.226100),
+            (49.228350, 15.226300),
+            (49.228200, 15.226300),
+            (49.228200, 15.226100),
+        ],
     ]
 
     req.no_fly_zones = []
     for obstacle_coordinates in raw_no_fly_zones:
         obstacle_instance = ZoneClass()
-        gps_pts = [PtClassInZone(x=lat, y=lon, z=0.0) for lat, lon in obstacle_coordinates]
+        gps_pts = [
+            PtClassInZone(x=lat, y=lon, z=0.0) for lat, lon in obstacle_coordinates
+        ]
         setattr(obstacle_instance, pts_field_name, gps_pts)
         req.no_fly_zones.append(obstacle_instance)
 
     # Height Restricted Zone safely inside Zone 3
     raw_hr_zones = [
-        [(49.228420, 15.226150), (49.228520, 15.226150), (49.228520, 15.226350), (49.228420, 15.226350),(49.228420, 15.226150)]
+        [
+            (49.228420, 15.226150),
+            (49.228520, 15.226150),
+            (49.228520, 15.226350),
+            (49.228420, 15.226350),
+            (49.228420, 15.226150),
+        ]
     ]
     req.hr_no_fly_zones = []
     for hrz_coordinates in raw_hr_zones:
@@ -95,10 +156,13 @@ def build_request():
 
     return req, raw_fly_zones, raw_no_fly_zones, raw_hr_zones
 
-def visualize_scene(fly_zones, no_fly_zones, hr_zones, drone_paths=None, is_preview=True):
+
+def visualize_scene(
+    req, fly_zones, no_fly_zones, hr_zones, drone_paths=None, is_preview=True
+):
     """Renders the environment map. Shows inputs if previewing, or includes trajectories if provided."""
     fig = plt.figure(figsize=(13, 9))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
     all_x, all_y = [], []
 
     # 1. Plot Fly Zones
@@ -107,71 +171,178 @@ def visualize_scene(fly_zones, no_fly_zones, hr_zones, drone_paths=None, is_prev
         poly_x, poly_y = list(poly_x) + [poly_x[0]], list(poly_y) + [poly_y[0]]
         all_x.extend(poly_x)
         all_y.extend(poly_y)
-        ax.plot(poly_x, poly_y, [0.0]*len(poly_x), 'g--', linewidth=2.0, label='Fly Zones' if idx == 0 else "")
-        ax.add_collection3d(Poly3DCollection([list(zip(poly_x, poly_y, [0.0]*len(poly_x)))], alpha=0.04, facecolors='g'))
+        ax.plot(
+            poly_x,
+            poly_y,
+            [0.0] * len(poly_x),
+            "g--",
+            linewidth=2.0,
+            label="Fly Zones" if idx == 0 else "",
+        )
+        ax.add_collection3d(
+            Poly3DCollection(
+                [list(zip(poly_x, poly_y, [0.0] * len(poly_x)))],
+                alpha=0.04,
+                facecolors="g",
+            )
+        )
 
     # 2. Plot No-Fly Pillars
     PILLAR_HEIGHT = 15.0
     for idx, obstacle in enumerate(no_fly_zones):
         obs_x, obs_y = zip(*[gps_to_meters(lat, lon) for lat, lon in obstacle])
         obs_x, obs_y = list(obs_x) + [obs_x[0]], list(obs_y) + [obs_y[0]]
-        ax.plot(obs_x, obs_y, [0.0]*len(obs_x), 'r-', linewidth=1.8, label='No-Fly Pillars' if idx == 0 else "")
-        ax.plot(obs_x, obs_y, [PILLAR_HEIGHT]*len(obs_x), 'r-', linewidth=1.8)
+        ax.plot(
+            obs_x,
+            obs_y,
+            [0.0] * len(obs_x),
+            "r-",
+            linewidth=1.8,
+            label="No-Fly Pillars" if idx == 0 else "",
+        )
+        ax.plot(obs_x, obs_y, [PILLAR_HEIGHT] * len(obs_x), "r-", linewidth=1.8)
         for i in range(len(obs_x) - 1):
-            wall = [[(obs_x[i], obs_y[i], 0.0), (obs_x[i+1], obs_y[i+1], 0.0),
-                     (obs_x[i+1], obs_y[i+1], PILLAR_HEIGHT), (obs_x[i], obs_y[i], PILLAR_HEIGHT)]]
-            ax.add_collection3d(Poly3DCollection(wall, alpha=0.2, facecolors='r'))
+            wall = [
+                [
+                    (obs_x[i], obs_y[i], 0.0),
+                    (obs_x[i + 1], obs_y[i + 1], 0.0),
+                    (obs_x[i + 1], obs_y[i + 1], PILLAR_HEIGHT),
+                    (obs_x[i], obs_y[i], PILLAR_HEIGHT),
+                ]
+            ]
+            ax.add_collection3d(Poly3DCollection(wall, alpha=0.2, facecolors="r"))
 
     # 3. Plot Height Restricted Ceilings
     for idx, hrz in enumerate(hr_zones):
         hrz_x, hrz_y = zip(*[gps_to_meters(lat, lon) for lat, lon in hrz])
         hrz_x, hrz_y = list(hrz_x) + [hrz_x[0]], list(hrz_y) + [hrz_y[0]]
         CEILING = 3.5
-        ax.plot(hrz_x, hrz_y, [0.0]*len(hrz_x), 'b-', linewidth=1.5, label='Height-Restricted Area' if idx == 0 else "")
-        ax.plot(hrz_x, hrz_y, [CEILING]*len(hrz_x), 'b-', linewidth=1.5)
+        ax.plot(
+            hrz_x,
+            hrz_y,
+            [0.0] * len(hrz_x),
+            "b-",
+            linewidth=1.5,
+            label="Height-Restricted Area" if idx == 0 else "",
+        )
+        ax.plot(hrz_x, hrz_y, [CEILING] * len(hrz_x), "b-", linewidth=1.5)
         for i in range(len(hrz_x) - 1):
-            box_wall = [[(hrz_x[i], hrz_y[i], 0.0), (hrz_x[i+1], hrz_y[i+1], 0.0),
-                         (hrz_x[i+1], hrz_y[i+1], CEILING), (hrz_x[i], hrz_y[i], CEILING)]]
-            ax.add_collection3d(Poly3DCollection(box_wall, alpha=0.3, facecolors='#ff7f0e'))
+            box_wall = [
+                [
+                    (hrz_x[i], hrz_y[i], 0.0),
+                    (hrz_x[i + 1], hrz_y[i + 1], 0.0),
+                    (hrz_x[i + 1], hrz_y[i + 1], CEILING),
+                    (hrz_x[i], hrz_y[i], CEILING),
+                ]
+            ]
+            ax.add_collection3d(
+                Poly3DCollection(box_wall, alpha=0.3, facecolors="#ff7f0e")
+            )
 
-    # 4. Plot Flight Tracks (Only if executing the final path visualization)
+    # 4. Plot Drone Trajectories if available
     if not is_preview and drone_paths:
-        colors = ['#1f77b4', '#9467bd', '#2ca02c']
+        colors = ["#1f77b4", "#9467bd", "#2ca02c"]
         for i, path in enumerate(drone_paths):
-            if not path.points: continue
-            meter_pts = [gps_to_meters(pt.position.y, pt.position.x) for pt in path.points]
-            path_x, path_y = [p[0] for p in meter_pts], [p[1] for p in meter_pts]
-            path_z = [pt.position.z for pt in path.points]
+            if not path.points:
+                continue
+
+            path_x = []
+            path_y = []
+            path_z = []
+
+            # --- STEP A: Map the Initial Drone Position ---
+            init_drone = req.initial_drone_positions[i]
+            # req has x=Lat, y=Lon -> Convert to meters
+            init_x, init_y = gps_to_meters(init_drone.x, init_drone.y)
+
+            # FIX: Append the calculated METERS, not raw degrees!
+            path_x.append(init_x)
+            path_y.append(init_y)
+            path_z.append(init_drone.z)
+
+            # --- STEP B: Map the Planned Waypoints ---
+            for pt in path.points:
+                if (
+                    pt.position.x == 0.0
+                    and pt.position.y == 0.0
+                    and pt.position.z == 0.0
+                ):
+                    continue
+
+                # FIX: Match the exact working 2D conversion pipeline.
+                # Response points have x=Lon, y=Lat. Pass them correctly to gps_to_meters!
+                x_meters, y_meters = gps_to_meters(pt.position.y, pt.position.x)
+
+                path_x.append(x_meters)
+                path_y.append(y_meters)
+                path_z.append(pt.position.z)
+
+            if len(path_x) < 2:
+                continue
 
             c = colors[i % len(colors)]
-            ax.plot(path_x, path_y, path_z, color=c, linestyle='-', linewidth=2.5,
-                    label=f'UAV {i+1} Track', marker='o', markersize=3, zorder=10)
-            ax.scatter(path_x[0], path_y[0], path_z[0], color=c, marker='^', s=140, edgecolors='k', zorder=11)
-            ax.scatter(path_x[-1], path_y[-1], path_z[-1], color=c, marker='s', s=110, edgecolors='k', zorder=11)
+            ax.plot(
+                path_x,
+                path_y,
+                path_z,
+                color=c,
+                linestyle="-",
+                linewidth=2.5,
+                label=f"UAV {i+1} Track",
+                marker="o",
+                markersize=3,
+                zorder=10,
+            )
 
+            # Mark flight start (Triangle) and termination (Square)
+            ax.scatter(
+                path_x[0],
+                path_y[0],
+                path_z[0],
+                color=c,
+                marker="^",
+                s=140,
+                edgecolors="k",
+                zorder=11,
+            )
+            ax.scatter(
+                path_x[-1],
+                path_y[-1],
+                path_z[-1],
+                color=c,
+                marker="s",
+                s=110,
+                edgecolors="k",
+                zorder=11,
+            )
     if all_x and all_y:
         margin = 20.0
         ax.set_xlim(min(all_x) - margin, max(all_x) + margin)
         ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
         ax.set_zlim(0.0, PILLAR_HEIGHT + 2.0)
 
-    title_str = 'PRE-FLIGHT GEOMETRY PREVIEW (Close window to continue)' if is_preview else 'FINAL RESOLVED MULTI-UAV COVERAGE TRACKS'
-    ax.set_title(title_str, fontsize=13, fontweight='bold')
-    ax.set_xlabel('East (Meters)')
-    ax.set_ylabel('North (Meters)')
-    ax.set_zlabel('Altitude (Meters)')
-    ax.legend(loc='upper right')
+    title_str = (
+        "PRE-FLIGHT GEOMETRY PREVIEW (Close window to continue)"
+        if is_preview
+        else "FINAL RESOLVED MULTI-UAV COVERAGE TRACKS"
+    )
+    ax.set_title(title_str, fontsize=13, fontweight="bold")
+    ax.set_xlabel("East (Meters)")
+    ax.set_ylabel("North (Meters)")
+    ax.set_zlabel("Altitude (Meters)")
+    ax.legend(loc="upper right")
     ax.set_box_aspect([1, 1, 0.4])
     plt.show()
 
-if __name__ == '__main__':
-    rospy.init_node('coverage_planner_preflight_verifier', anonymous=True)
+
+if __name__ == "__main__":
+    rospy.init_node("coverage_planner_preflight_verifier", anonymous=True)
 
     # Generate the request and coordinates locally
     req, fz, nfz, hrz = build_request()
 
     # Connect to Service and Execute
-    service_name = '/mrs_coverage_planner_node/compute_coverage_path'
+    service_name = "/mrs_coverage_planner_node/compute_coverage_path"
     rospy.loginfo(f"Connecting to planner service: {service_name}...")
     try:
         rospy.wait_for_service(service_name, timeout=3.0)
@@ -179,9 +350,13 @@ if __name__ == '__main__':
         response = planner_service(req)
 
         if response.success:
-            rospy.loginfo(f"Success! Received paths for {len(response.drone_paths)} drones.")
+            rospy.loginfo(
+                f"Success! Received paths for {len(response.drone_paths)} drones."
+            )
             # Display the final result view with trajectories included
-            visualize_scene(fz, nfz, hrz, drone_paths=response.drone_paths, is_preview=False)
+            visualize_scene(
+                req, fz, nfz, hrz, drone_paths=response.drone_paths, is_preview=False
+            )
         else:
             rospy.logwarn(f"Service calculation rejected: {response.message}")
 

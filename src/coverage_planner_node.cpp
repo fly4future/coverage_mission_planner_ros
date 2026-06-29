@@ -617,9 +617,10 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     std::vector<mrs_coverage_planner::point_t> drone_pos(drone_num);
     std::vector<std::tuple<mrs_coverage_planner::point_t, mrs_coverage_planner::point_t>> path_ends(drone_num);
     for (int i = 0; i < drone_num; ++i) {
-        drone_pos.at(i) = gps_coordinates_to_meters({mission.initial_positions.at(i).x, mission.initial_positions.at(i).y}, planner_config_.lat_lon_origin);
-        std::get<0>(path_ends.at(i)) = {coverage_paths_tmp.at(i).at(1).position.x, coverage_paths_tmp.at(i).at(1).position.y};
-        std::get<1>(path_ends.at(i)) = {coverage_paths_tmp.at(i).at(coverage_paths_tmp.at(i).size() - 2).position.x, coverage_paths_tmp.at(i).at(coverage_paths_tmp.at(i).size() - 2).position.y};
+        //drone_pos.at(i) = gps_coordinates_to_meters({mission.initial_positions.at(i).x, mission.initial_positions.at(i).y}, planner_config_.lat_lon_origin);
+        drone_pos.at(i) = {mission.initial_positions.at(i).x, mission.initial_positions.at(i).y};
+        std::get<0>(path_ends.at(i)) = {coverage_paths_tmp.at(i).front().position.x, coverage_paths_tmp.at(i).front().position.y};
+        std::get<1>(path_ends.at(i)) = {coverage_paths_tmp.at(i).back().position.x, coverage_paths_tmp.at(i).back().position.y};
     }
 
     // Create a matrix used for the hungarian algorithm

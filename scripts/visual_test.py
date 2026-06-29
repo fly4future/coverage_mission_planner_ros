@@ -1,7 +1,20 @@
 #!/usr/bin/env python3
 import rospy
+import math
 import matplotlib.pyplot as plt
 from mrs_coverage_planner.srv import ComputeCoveragePath, ComputeCoveragePathRequest
+
+# --- CONFIGURATION & LOCAL ORIGIN FOR VISUALIZATION ONLY ---
+ORIGIN_LAT = 49.228330
+ORIGIN_LON = 15.225238
+
+def gps_to_meters(lat, lon, lat_origin=ORIGIN_LAT, lon_origin=ORIGIN_LON):
+    """Converts GPS coordinates to local XY meters relative to an origin for 3D plotting."""
+    METERS_IN_DEGREE = 111319.9
+    meters_in_long_degree = math.cos(lat_origin * math.pi / 180.0) * METERS_IN_DEGREE
+    x = (lon - lon_origin) * meters_in_long_degree
+    y = (lat - lat_origin) * METERS_IN_DEGREE
+    return x, y
 
 def call_coverage_planner():
     rospy.init_node('coverage_planner_client_py', anonymous=True)
@@ -83,9 +96,9 @@ def visualize(raw_coordinates, drone_paths):
 
     plt.figure(figsize=(10, 8))
 
-    # 1. Plot Input Fly Zone Boundary (Map Longitude to X-axis, Latitude to Y-axis)
-    poly_x = [lon for lat, lon in raw_coordinates]
-    poly_y = [lat for lat, lon in raw_coordinates]
+    # Unpacks [(x1, y1), (x2, y2), ...] into two separate tuples: (x1, x2, ...) and (y1, y2, ...)
+    poly_x, poly_y = zip(*[gps_to_meters(lat, lon) for lat, lon in raw_coordinates])
+    poly_x, poly_y = list(poly_x), list(poly_y)
 
     poly_x.append(poly_x[0])
     poly_y.append(poly_y[0])
@@ -101,8 +114,8 @@ def visualize(raw_coordinates, drone_paths):
             if not (pt.position.x == 0.0 and pt.position.y == 0.0)
         ]
 
-        path_x = [pos.x for pos in valid_points]
-        path_y = [pos.y for pos in valid_points]
+        path_x, path_y = zip(*[gps_to_meters(pos.y, pos.x) for pos in valid_points])
+        path_x, path_y = list(path_x), list(path_y)
 
         if path_x:
             plt.plot(path_x, path_y, 'b-', label=f'Drone {i+1} Sweeping Path', alpha=0.8, marker='o', markersize=4)
