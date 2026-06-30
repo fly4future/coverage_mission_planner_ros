@@ -31,8 +31,7 @@ namespace coverage_planner
 
 class CoveragePlanner : public mrs_coverage_planner::planners::Planner {
 public:
-  bool initialize(const ros::NodeHandle &parent_nh, const std::string &name, const std::string &name_space,
-                  std::shared_ptr<mrs_coverage_planner::CommonHandlers_t> common_handlers) override;
+  bool initialize(const ros::NodeHandle &parent_nh, const std::string &name, const std::string &name_space) override;
 
   bool activate(void) override;
   void deactivate(void) override;
@@ -48,7 +47,6 @@ private:
   bool is_active_      = false;
 
   mutable algorithm_config_t planner_config_;
-  std::shared_ptr<mrs_coverage_planner::CommonHandlers_t> common_handlers_;
 
   algorithm_config_t parse_algorithm_config(mrs_lib::ParamLoader &param_loader) const;
 

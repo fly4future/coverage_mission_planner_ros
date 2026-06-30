@@ -1,6 +1,5 @@
 #pragma once
 
-#include <mrs_coverage_planner/common_handlers.h>
 #include <mrs_coverage_planner/utils/json_var_parser.h>
 #include <ros/ros.h>
 
@@ -29,8 +28,7 @@ class Planner {
    *
    * @return true if success
    */
-  virtual bool initialize(const ros::NodeHandle& nh, const std::string& name, const std::string& name_space,
-                          std::shared_ptr<mrs_coverage_planner::CommonHandlers_t> common_handlers) = 0;
+  virtual bool initialize(const ros::NodeHandle& nh, const std::string& name, const std::string& name_space) = 0;
 
   /**
    * @brief It is called before the planner will be required and used. Should
