@@ -134,13 +134,16 @@ public:
         service_ = nh_.advertiseService("compute_coverage_path", &CoveragePlannerNode::handleComputePathRequest, this);
         ROS_INFO("[CoveragePlannerNode]: Service initialized.");
     }
-    
+
+     
+
     coverage_paths_t getCoveragePaths(
-        const mrs_coverage_planner::CoverageMission &mission, 
-        const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &fly_zones_arg, 
+        const mrs_coverage_planner::CoverageMission &mission,
+        algorithm_config_t &config,
+        const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &fly_zones_arg,
         const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &no_fly_zones_arg, 
-        const std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> &hr_no_fly_zones_arg, 
-        std::vector<double> min_horizontal_distances, 
+        const std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> &hr_no_fly_zones_arg,
+        std::vector<double> min_horizontal_distances,
         std::vector<double> min_vertical_distances
     ) const;
 
@@ -151,11 +154,26 @@ public:
         ROS_INFO("[CoveragePlannerNode]: Received incoming planning request. Projecting GPS frames...");
 
         try {
+
+            // Create a request-local copy of the planner configuration
+            algorithm_config_t config = planner_config_;
+
+            // Override the world origin if supplied by the service request
+            if (config.points_in_lat_lon) {
+                config.lat_lon_origin.first  = req.latitude_origin;
+                config.lat_lon_origin.second = req.longitude_origin;
+            }
+
+            ROS_INFO_STREAM("[CoveragePlannerNode]: Using world origin: "
+                            << config.lat_lon_origin.first << ", "
+                            << config.lat_lon_origin.second);
+
+
             // 1. Build a dummy CoverageMission object and convert drone positions to meters
             mrs_coverage_planner::CoverageMission mission_msg;
             for (const auto& p : req.initial_drone_positions) {
                 // Transform raw GPS lat/lon input into local meter coordinates
-                auto projected_pt = gps_coordinates_to_meters({p.x, p.y}, planner_config_.lat_lon_origin);
+                auto projected_pt = gps_coordinates_to_meters({p.x, p.y}, config.lat_lon_origin);
                 geometry_msgs::Point ros_pt;
                 ros_pt.x = projected_pt.first;
                 ros_pt.y = projected_pt.second;
@@ -204,6 +222,7 @@ public:
             // 5. Invoke getCoveragePaths with matching global context
             coverage_paths_t computed_paths = getCoveragePaths(
                 mission_msg,
+                config,
                 search_areas_latlon,
                 no_fly_zones_latlon,
                 hr_no_fly_zones_latlon,
@@ -227,9 +246,9 @@ public:
 
                 for (const auto& wp : single_drone_path) {
                     mrs_msgs::Reference reference;
-                    // IMPORTANT: Your python visualizer expects local metric positions (Y=East/X=North mapping)
-                    reference.position.x = wp.position.y; 
-                    reference.position.y = wp.position.x;
+                    // Paths are returned in GPS coordinates (latitude, longitude)
+                    reference.position.x = wp.position.x; 
+                    reference.position.y = wp.position.y;
                     reference.position.z = wp.position.z;
                     reference.heading = wp.heading;
                     trajectory.points.push_back(reference);
@@ -488,8 +507,11 @@ void CoveragePlannerNode::resolveTransitHeights(TransitPathGroupsStruct& tpgs, c
     }
 }
 
+
+
 CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
-    const mrs_coverage_planner::CoverageMission &mission, 
+    const mrs_coverage_planner::CoverageMission &mission,
+    algorithm_config_t &config, 
     const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &fly_zones_arg, 
     const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &no_fly_zones_arg, 
     const std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> &hr_no_fly_zones_arg, 
@@ -549,19 +571,19 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     double sweeping_height = 0.0; // Should come from request in real use
     double transit_path_height = sweeping_height + 1.0;
 
-    planner_config_.number_of_drones = mission.initial_positions.size();
-    planner_config_.sweeping_alt = sweeping_height;
-    planner_config_.decomposition_type = BOUSTROPHEDON_DECOMPOSITION;
-    planner_config_.min_sub_polygons_per_uav = 1;
+    config.number_of_drones = mission.initial_positions.size();
+    config.sweeping_alt = sweeping_height;
+    config.decomposition_type = BOUSTROPHEDON_DECOMPOSITION;
+    config.min_sub_polygons_per_uav = 1;
 
     // Create a logger to log everything directly into stdout
     auto shared_logger = std::make_shared<loggers::SimpleLogger>();
-    EnergyCalculator energy_calculator{planner_config_.energy_calculator_config, shared_logger};
+    EnergyCalculator energy_calculator{config.energy_calculator_config, shared_logger};
     mrs_coverage_planner::polygon_t empty_fz;
 
     // Create one master polygon that contains ALL obstacles. This will be used for pathfinding between areas.
     // The fly-zone part is left empty, as the ShortestPathCalculator will ignore it anyway.
-    MapPolygon master_obstacle_polygon = MapPolygon(empty_fz, no_fly_zones, planner_config_.lat_lon_origin, hr_no_fly_zones);
+    MapPolygon master_obstacle_polygon = MapPolygon(empty_fz, no_fly_zones, config.lat_lon_origin, hr_no_fly_zones);
     ShortestPathCalculator shortest_path_calculator(master_obstacle_polygon, true, sweeping_height);
 
     // Now, create a vector of MapPolygon objects, one for each search area.
@@ -569,8 +591,8 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     // The trapezoidal decomposition will correctly handle only the NFZs inside the FZ.
     std::vector<MapPolygon> search_areas;
     for (polygon_t fly_zone : fly_zones) {
-        MapPolygon area;//(fz, no_fly_zones, planner_config_.lat_lon_origin, hr_no_fly_zones);
-        area = MapPolygon(fly_zone, no_fly_zones, planner_config_.lat_lon_origin, hr_no_fly_zones);
+        MapPolygon area;//(fz, no_fly_zones, config.lat_lon_origin, hr_no_fly_zones);
+        area = MapPolygon(fly_zone, no_fly_zones, config.lat_lon_origin, hr_no_fly_zones);
 
         // Remove outer no-fly zones only for decomposition and sweeping purposes for this specific area.
         // ShortestPathCalculator already loaded the original polygon with all zones for safe transit paths.
@@ -589,9 +611,9 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
 
     mstsp_solver::final_solution_t best_solution;
     try {
-        planner_config_.start_pos = {mission.initial_positions.empty() ? 0.0 : mission.initial_positions[0].x, mission.initial_positions.empty() ? 0.0 : mission.initial_positions[0].y};
-        auto solver_lambda = [&](int n) { return solve_for_uavs(n, planner_config_, search_areas, energy_calculator, shortest_path_calculator, shared_logger); };
-        best_solution = generate_with_constraints(planner_config_.max_single_path_energy * 3600, planner_config_.number_of_drones, solver_lambda);
+        config.start_pos = {mission.initial_positions.empty() ? 0.0 : mission.initial_positions[0].x, mission.initial_positions.empty() ? 0.0 : mission.initial_positions[0].y};
+        auto solver_lambda = [&](int n) { return solve_for_uavs(n, config, search_areas, energy_calculator, shortest_path_calculator, shared_logger); };
+        best_solution = generate_with_constraints(config.max_single_path_energy * 3600, config.number_of_drones, solver_lambda);
     } catch (const std::exception &e) { ROS_ERROR("[CoveragePlanner] Solver failed: %s", e.what()); return empty_paths; }
 
     // Save genrated path to coverage_paths_tmp excluding some points
@@ -612,12 +634,12 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     }
 
     // Get drone positions and start and end position of each sweeping path
-    int drone_num = planner_config_.number_of_drones;
+    int drone_num = config.number_of_drones;
     if (coverage_paths_tmp.size() < (size_t)drone_num) return empty_paths;
     std::vector<mrs_coverage_planner::point_t> drone_pos(drone_num);
     std::vector<std::tuple<mrs_coverage_planner::point_t, mrs_coverage_planner::point_t>> path_ends(drone_num);
     for (int i = 0; i < drone_num; ++i) {
-        //drone_pos.at(i) = gps_coordinates_to_meters({mission.initial_positions.at(i).x, mission.initial_positions.at(i).y}, planner_config_.lat_lon_origin);
+        //drone_pos.at(i) = gps_coordinates_to_meters({mission.initial_positions.at(i).x, mission.initial_positions.at(i).y}, config.lat_lon_origin);
         drone_pos.at(i) = {mission.initial_positions.at(i).x, mission.initial_positions.at(i).y};
         std::get<0>(path_ends.at(i)) = {coverage_paths_tmp.at(i).front().position.x, coverage_paths_tmp.at(i).front().position.y};
         std::get<1>(path_ends.at(i)) = {coverage_paths_tmp.at(i).back().position.x, coverage_paths_tmp.at(i).back().position.y};
@@ -700,7 +722,7 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     // Covert coverage_paths to gps coordinates
     for (int i = 0; i < drone_num; ++i) {
         for (size_t j = 0; j < coverage_paths.at(i).size(); ++j) {
-            point_t d2 = meters_to_gps_coordinates({coverage_paths.at(i).at(j).position.x, coverage_paths.at(i).at(j).position.y}, planner_config_.lat_lon_origin);
+            point_t d2 = meters_to_gps_coordinates({coverage_paths.at(i).at(j).position.x, coverage_paths.at(i).at(j).position.y}, config.lat_lon_origin);
             coverage_paths.at(i).at(j).position.x = d2.first; coverage_paths.at(i).at(j).position.y = d2.second;
         }
     }

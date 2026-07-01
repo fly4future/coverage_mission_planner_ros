@@ -153,6 +153,8 @@ def build_request():
     req.min_horizontal_distances = [6.0, 4.5, 5.0]
     req.min_vertical_distances = [3.0, 3.0, 3.0]
     req.target_sweeping_height = 6.0
+    req.latitude_origin = ORIGIN_LAT
+    req.longitude_origin = ORIGIN_LON
 
     return req, raw_fly_zones, raw_no_fly_zones, raw_hr_zones
 
@@ -271,7 +273,7 @@ def visualize_scene(
 
                 # FIX: Match the exact working 2D conversion pipeline.
                 # Response points have x=Lon, y=Lat. Pass them correctly to gps_to_meters!
-                x_meters, y_meters = gps_to_meters(pt.position.y, pt.position.x)
+                x_meters, y_meters = gps_to_meters(pt.position.x, pt.position.y)
 
                 path_x.append(x_meters)
                 path_y.append(y_meters)

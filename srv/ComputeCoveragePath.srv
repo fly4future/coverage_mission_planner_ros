@@ -11,6 +11,9 @@ float64[] min_horizontal_distances
 float64[] min_vertical_distances
 float64 target_sweeping_height
 
+float64 latitude_origin
+float64 longitude_origin
+
 ---
 # RESPONSE (Output blueprints returned by the planner node)
 bool success
@@ -18,3 +21,4 @@ string message
 
 # A collection of paths (one complete reference array per drone)
 mrs_msgs/TrajectoryReference[] drone_paths
+
