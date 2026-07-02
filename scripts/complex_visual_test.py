@@ -5,6 +5,9 @@ import rospy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+# Standard ROS Message imports to replace genpy dynamic extraction
+from geometry_msgs.msg import Point, Point32, Polygon
 from mrs_coverage_planner.srv import ComputeCoveragePath, ComputeCoveragePathRequest
 
 # --- CONFIGURATION & LOCAL ORIGIN FOR VISUALIZATION ONLY ---
@@ -25,37 +28,11 @@ def build_request():
     """Constructs the request payload with explicit geometric gaps."""
     req = ComputeCoveragePathRequest()
 
-    # --- DYNAMIC TYPE EXTRACTION ---
-    import genpy
-
-    try:
-        DronePointType = req._slot_types[
-            req.__slots__.index("initial_drone_positions")
-        ].replace("[]", "")
-        DronePtClass = genpy.message.get_message_class(DronePointType)
-
-        ZoneWrapperType = req._slot_types[req.__slots__.index("fly_zones")].replace(
-            "[]", ""
-        )
-        ZoneClass = genpy.message.get_message_class(ZoneWrapperType)
-
-        temp_zone = ZoneClass()
-        pts_field_name = temp_zone.__slots__[0]
-        PtTypeInZone = temp_zone._slot_types[
-            temp_zone.__slots__.index(pts_field_name)
-        ].replace("[]", "")
-        PtClassInZone = genpy.message.get_message_class(PtTypeInZone)
-    except Exception as e:
-        print(
-            f"Error resolving ROS message definitions: {e}. Ensure workspace is sourced."
-        )
-        sys.exit(1)
-
-    # Drones Locations
+    # 1. Populating Initial Drone Locations using explicit geometry_msgs/Point
     req.initial_drone_positions = [
-        DronePtClass(x=49.227900, y=15.224600, z=0.0),
-        DronePtClass(x=49.228330, y=15.225238, z=0.0),
-        DronePtClass(x=49.227900, y=15.226600, z=0.0),
+        Point(x=49.227900, y=15.224600, z=0.0),
+        Point(x=49.228330, y=15.225238, z=0.0),
+        Point(x=49.227900, y=15.226600, z=0.0),
     ]
 
     # Fly Zones (Geometrically separated to prevent edge collisions)
@@ -83,12 +60,18 @@ def build_request():
         ],
     ]
 
+    # 2. Populate Fly Zones natively using geometry_msgs/Polygon and Point32 arrays
     req.fly_zones = []
     for zone_coordinates in raw_fly_zones:
-        zone_instance = ZoneClass()
-        gps_pts = [PtClassInZone(x=lat, y=lon, z=0.0) for lat, lon in zone_coordinates]
-        setattr(zone_instance, pts_field_name, gps_pts)
+        zone_instance = Polygon()
+        zone_instance.points = [
+            Point32(x=lat, y=lon, z=0.0) for lat, lon in zone_coordinates
+        ]
         req.fly_zones.append(zone_instance)
+
+    if not req.fly_zones:
+        rospy.logerr("Cannot plan without fly zones")
+        sys.exit(1)
 
     # No-Fly Zones nested cleanly within the boundaries
     raw_no_fly_zones = [
@@ -122,13 +105,13 @@ def build_request():
         ],
     ]
 
+    # 3. Populate No-Fly Zones
     req.no_fly_zones = []
     for obstacle_coordinates in raw_no_fly_zones:
-        obstacle_instance = ZoneClass()
-        gps_pts = [
-            PtClassInZone(x=lat, y=lon, z=0.0) for lat, lon in obstacle_coordinates
+        obstacle_instance = Polygon()
+        obstacle_instance.points = [
+            Point32(x=lat, y=lon, z=0.0) for lat, lon in obstacle_coordinates
         ]
-        setattr(obstacle_instance, pts_field_name, gps_pts)
         req.no_fly_zones.append(obstacle_instance)
 
     # Height Restricted Zone safely inside Zone 3
@@ -141,11 +124,14 @@ def build_request():
             (49.228420, 15.226150),
         ]
     ]
+
+    # 4. Populate Height Restricted Zones
     req.hr_no_fly_zones = []
     for hrz_coordinates in raw_hr_zones:
-        hrz_instance = ZoneClass()
-        gps_pts = [PtClassInZone(x=lat, y=lon, z=0.0) for lat, lon in hrz_coordinates]
-        setattr(hrz_instance, pts_field_name, gps_pts)
+        hrz_instance = Polygon()
+        hrz_instance.points = [
+            Point32(x=lat, y=lon, z=0.0) for lat, lon in hrz_coordinates
+        ]
         req.hr_no_fly_zones.append(hrz_instance)
 
     req.hr_no_fly_depths = [3.5]
@@ -254,10 +240,8 @@ def visualize_scene(
 
             # --- STEP A: Map the Initial Drone Position ---
             init_drone = req.initial_drone_positions[i]
-            # req has x=Lat, y=Lon -> Convert to meters
             init_x, init_y = gps_to_meters(init_drone.x, init_drone.y)
 
-            # FIX: Append the calculated METERS, not raw degrees!
             path_x.append(init_x)
             path_y.append(init_y)
             path_z.append(init_drone.z)
@@ -271,8 +255,6 @@ def visualize_scene(
                 ):
                     continue
 
-                # FIX: Match the exact working 2D conversion pipeline.
-                # Response points have x=Lon, y=Lat. Pass them correctly to gps_to_meters!
                 x_meters, y_meters = gps_to_meters(pt.position.x, pt.position.y)
 
                 path_x.append(x_meters)
