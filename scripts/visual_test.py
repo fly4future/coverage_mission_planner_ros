@@ -64,7 +64,7 @@ def call_coverage_planner():
     num_drones = len(req.initial_drone_positions)
     req.min_horizontal_distances = [5.0] * num_drones
     req.min_vertical_distances = [5.0] * num_drones
-    req.target_sweeping_height = 5.0
+    req.sweeping_height = 5.0
     req.latitude_origin = ORIGIN_LAT
     req.longitude_origin = ORIGIN_LON
 

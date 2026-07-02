@@ -138,7 +138,7 @@ def build_request():
 
     req.min_horizontal_distances = [6.0, 4.5, 5.0]
     req.min_vertical_distances = [3.0, 3.0, 3.0]
-    req.target_sweeping_height = 6.0
+    req.sweeping_height = 6.0
     req.latitude_origin = ORIGIN_LAT
     req.longitude_origin = ORIGIN_LON
 

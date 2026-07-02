@@ -144,8 +144,8 @@ public:
         const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &no_fly_zones_arg, 
         const std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> &hr_no_fly_zones_arg,
         std::vector<double> min_horizontal_distances,
-        std::vector<double> min_vertical_distances
-    ) const;
+        std::vector<double> min_vertical_distances,
+        double sweeping_height) const;
 
     void resolveTransitHeights(TransitPathGroupsStruct& tpgs, coverage_paths_t& coverage_paths, const Graph& graph, double sweeping_height, std::vector<double> min_horizontal_distances, std::vector<double> min_vertical_distances);
 
@@ -159,21 +159,30 @@ public:
             algorithm_config_t config = planner_config_;
 
             // Override the world origin if supplied by the service request
-            if (config.points_in_lat_lon) {
+            // Explicitly check that the coordinates are valid global GPS values and not unassigned zeros
+            if (req.latitude_origin >= -90.0 && req.latitude_origin <= 90.0 && req.latitude_origin != 0.0 &&
+                req.longitude_origin >= -180.0 && req.longitude_origin <= 180.0 && req.longitude_origin != 0.0) {
                 config.lat_lon_origin.first  = req.latitude_origin;
                 config.lat_lon_origin.second = req.longitude_origin;
             }
+         // Priority 2: Fallback to the live global ROS parameter server (updated by your Python node at runtime)
+            else {
+                double param_lat, param_lon;
+                if (ros::param::get("~latitude_origin", param_lat) && ros::param::get("~longitude_origin", param_lon)) {
+                    config.lat_lon_origin.first  = param_lat;
+                    config.lat_lon_origin.second = param_lon;
+                }
+            }
 
-            ROS_INFO_STREAM("[CoveragePlannerNode]: Using world origin: "
-                            << config.lat_lon_origin.first << ", "
-                            << config.lat_lon_origin.second);
+            ROS_INFO_STREAM("[CoveragePlannerNode]: Active Coordinate Origin Reference: "
+                            << config.lat_lon_origin.first << ", " << config.lat_lon_origin.second);
 
-
-            // 1. Build a dummy CoverageMission object and convert drone positions to meters
+            // 2. Parse Initial Drone Positions (Input GPS: x = Lat, y = Lon)
             mrs_coverage_planner::CoverageMission mission_msg;
             for (const auto& p : req.initial_drone_positions) {
-                // Transform raw GPS lat/lon input into local meter coordinates
+                // pass pair as {lat, lon} matching your exact pipeline assignment
                 auto projected_pt = gps_coordinates_to_meters({p.x, p.y}, config.lat_lon_origin);
+                
                 geometry_msgs::Point ros_pt;
                 ros_pt.x = projected_pt.first;
                 ros_pt.y = projected_pt.second;
@@ -181,33 +190,44 @@ public:
                 mission_msg.initial_positions.push_back(ros_pt);
             }
 
-            // 2. Map service fly zones into getCoveragePaths' expected LatLon vector structure
+            // 3. Map Fly Zones (Input geometry_msgs/Polygon: points are Point32, x = Lat, y = Lon)
             std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> search_areas_latlon;
             for (const auto& zone : req.fly_zones) {
                 std::vector<mrs_coverage_planner::custom_types::Point2DLatLon> current_zone;
                 for (const auto& p : zone.points) {
-                    current_zone.push_back({p.x, p.y}); // Keep raw Lat/Lon values for inner georeferencing
+                    current_zone.push_back({static_cast<double>(p.x), static_cast<double>(p.y)}); 
                 }
                 if (!current_zone.empty()) {
                     search_areas_latlon.push_back(current_zone);
                 }
             }
 
-            // 3. Map service no-fly zones into LatLon vectors
+            // 4. Map No-Fly Zones
             std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> no_fly_zones_latlon;
             for (const auto& poly : req.no_fly_zones) {
                 std::vector<mrs_coverage_planner::custom_types::Point2DLatLon> current_nfz;
                 for (const auto& p : poly.points) {
-                    current_nfz.push_back({p.x, p.y});
+                    current_nfz.push_back({static_cast<double>(p.x), static_cast<double>(p.y)});
                 }
                 if (!current_nfz.empty()) {
                     no_fly_zones_latlon.push_back(current_nfz);
                 }
             }
 
+            // 5. Map Height Restricted (HR) No-Fly Zones
             std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> hr_no_fly_zones_latlon;
+            size_t hr_zones_count = std::min(req.hr_no_fly_zones.size(), req.hr_no_fly_depths.size());
+            for (size_t i = 0; i < hr_zones_count; ++i) {
+                std::vector<mrs_coverage_planner::custom_types::Point2DLatLon> current_hr_zone;
+                for (const auto& p : req.hr_no_fly_zones[i].points) {
+                    current_hr_zone.push_back({static_cast<double>(p.x), static_cast<double>(p.y)});
+                }
+                if (!current_hr_zone.empty()) {
+                    hr_no_fly_zones_latlon.push_back({current_hr_zone, req.hr_no_fly_depths[i]});
+                }
+            }
 
-            // 4. Fill and balance vehicle horizontal/vertical separation requirements
+            // 6. Balance Separation Arrays 
             std::vector<double> min_horiz = req.min_horizontal_distances;
             std::vector<double> min_vert = req.min_vertical_distances;
             size_t num_drones = req.initial_drone_positions.size();
@@ -219,7 +239,28 @@ public:
                 min_vert.resize(num_drones, min_vert.empty() ? 5.0 : min_vert.back());
             }
 
-            // 5. Invoke getCoveragePaths with matching global context
+             // If the request provides a valid sweeping step, override the YAML static value
+            if (req.sweeping_step > 0.0) {
+                config.sweeping_step = req.sweeping_step;
+                ROS_INFO("[CoveragePlannerNode]: Overriding sweeping_step from request: %.2f meters", config.sweeping_step);
+            }
+
+            double sweeping_height = 0.0; 
+            if (req.sweeping_height > 0.0) {
+                sweeping_height = req.sweeping_height;
+                ROS_INFO("[CoveragePlannerNode]: Overriding sweeping_height from request: %.2f meters", sweeping_height);
+            } else {
+                // Fallback to whatever safe default your system expects if omitted
+                sweeping_height = 5.0; 
+            }
+
+            // Apply it directly to the configuration block used by EnergyAwareMCPP
+            config.sweeping_alt = sweeping_height;
+            // double transit_path_height = sweeping_height + 1.0;
+
+            
+
+            // 7. Execute Core Optimizer Calculation
             coverage_paths_t computed_paths = getCoveragePaths(
                 mission_msg,
                 config,
@@ -227,16 +268,18 @@ public:
                 no_fly_zones_latlon,
                 hr_no_fly_zones_latlon,
                 min_horiz,
-                min_vert
+                min_vert,
+                sweeping_height
             );
 
             if (computed_paths.empty()) {
                 res.success = false;
-                res.message = "Full multi-uav path optimizer returned an empty result.";
+                res.message = "Multi-UAV planner generated an empty optimization matrix.";
                 return true;
             }
 
-            // 6. Convert the calculated paths matrix to the ROS Response message structure
+            // 8. Format Output Response to match Python's expectations exactly:
+            // Python reads: pt.position.x -> passed to 'lat', pt.position.y -> passed to 'lon'
             for (const auto& single_drone_path : computed_paths) {
                 mrs_msgs::TrajectoryReference trajectory;
                 trajectory.header.stamp = ros::Time::now();
@@ -246,22 +289,25 @@ public:
 
                 for (const auto& wp : single_drone_path) {
                     mrs_msgs::Reference reference;
-                    // Paths are returned in GPS coordinates (latitude, longitude)
-                    reference.position.x = wp.position.x; 
-                    reference.position.y = wp.position.y;
-                    reference.position.z = wp.position.z;
+                    
+                    // CRITICAL PAIR MATCH:
+                    reference.position.x = wp.position.x; // Stores Latitude -> Python picks up as pt.position.x
+                    reference.position.y = wp.position.y; // Stores Longitude -> Python picks up as pt.position.y
+                    reference.position.z = wp.position.z; // Stores Altitude
                     reference.heading = wp.heading;
+                    
                     trajectory.points.push_back(reference);
                 }
                 res.drone_paths.push_back(trajectory);
             }
 
             res.success = true;
-            res.message = "Coordinated drone collision-free paths successfully computed.";
-        } catch (const std::exception& e) {
-            ROS_ERROR("[CoveragePlannerNode]: Coordinated planning failed: %s", e.what());
+            res.message = "Collision-free tracks successfully computed and exported to mission folder.";
+        } 
+        catch (const std::exception& e) {
+            ROS_ERROR("[CoveragePlannerNode]: Coordinated planning pipeline crash: %s", e.what());
             res.success = false;
-            res.message = std::string("Coordinated planning failed: ") + e.what();
+            res.message = std::string("Coordinated planning pipeline crash: ") + e.what();
         }
 
         return true;
@@ -516,7 +562,8 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
     const std::vector<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>> &no_fly_zones_arg, 
     const std::vector<std::pair<std::vector<mrs_coverage_planner::custom_types::Point2DLatLon>, double>> &hr_no_fly_zones_arg, 
     std::vector<double> min_horizontal_distances, 
-    std::vector<double> min_vertical_distances) const 
+    std::vector<double> min_vertical_distances,
+    double sweeping_height) const 
 {
     std::vector<mrs_coverage_planner::polygon_t> fly_zones, no_fly_zones;
     std::vector<std::pair<mrs_coverage_planner::polygon_t, double>> hr_no_fly_zones;
@@ -568,7 +615,7 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
         }
     }
 
-    double sweeping_height = 0.0; // Should come from request in real use
+    // double sweeping_height = 0.0; // Should come from request in real use
     double transit_path_height = sweeping_height + 1.0;
 
     config.number_of_drones = mission.initial_positions.size();
