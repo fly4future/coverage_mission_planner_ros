@@ -581,6 +581,11 @@ CoveragePlannerNode::coverage_paths_t CoveragePlannerNode::getCoveragePaths(
         no_fly_zones.push_back(nfz);
     }
     for (const auto &hr : hr_no_fly_zones_arg) {
+        if (sweeping_height > hr.second) {
+            ROS_INFO("[CoveragePlanner] Sweeping height (%.2f) clears HR ceiling (%.2f). Skipping restriction.", 
+                     sweeping_height, hr.second);
+            continue;
+        }
         mrs_coverage_planner::polygon_t hnfz;
         for (const auto &p : hr.first) hnfz.emplace_back(p.lat, p.lon);
         if (!hnfz.empty() && hnfz.front() != hnfz.back()) hnfz.emplace_back(hr.first[0].lat, hr.first[0].lon);

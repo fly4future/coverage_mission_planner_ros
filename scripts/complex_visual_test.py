@@ -14,6 +14,8 @@ from mrs_coverage_planner.srv import ComputeCoveragePath, ComputeCoveragePathReq
 ORIGIN_LAT = 49.228330
 ORIGIN_LON = 15.225238
 
+HR_NO_FLY_DEPTH = 3.5  # Height restriction for HR zones in meters
+
 
 def gps_to_meters(lat, lon, lat_origin=ORIGIN_LAT, lon_origin=ORIGIN_LON):
     """Converts GPS coordinates to local XY meters relative to an origin for 3D plotting."""
@@ -134,7 +136,7 @@ def build_request():
         ]
         req.hr_no_fly_zones.append(hrz_instance)
 
-    req.hr_no_fly_depths = [3.5]
+    req.hr_no_fly_depths = [HR_NO_FLY_DEPTH]
 
     req.min_horizontal_distances = [6.0, 4.5, 5.0]
     req.min_vertical_distances = [3.0, 3.0, 3.0]
@@ -204,7 +206,7 @@ def visualize_scene(
     for idx, hrz in enumerate(hr_zones):
         hrz_x, hrz_y = zip(*[gps_to_meters(lat, lon) for lat, lon in hrz])
         hrz_x, hrz_y = list(hrz_x) + [hrz_x[0]], list(hrz_y) + [hrz_y[0]]
-        CEILING = 3.5
+        CEILING = HR_NO_FLY_DEPTH
         ax.plot(
             hrz_x,
             hrz_y,
