@@ -14,6 +14,7 @@
 #include "SimpleLogger.h"
 #include "utils.hpp"
 #include <iomanip>
+#include <optional>
 
 struct hr_nfz_file_t {
     std::string filename;
@@ -97,5 +98,26 @@ mstsp_solver::final_solution_t solve_for_uavs(int n_uavs, const algorithm_config
                                               const std::vector<MapPolygon> &search_areas,
                                               const std::vector<std::shared_ptr<PathCostCalculator>>& cost_calculators, const ShortestPathCalculator& shortest_path_calculator,
                                               std::shared_ptr<loggers::SimpleLogger>& logger);
+
+/*!
+ * Check whether the algorithm configuration is valid (i.e. contains all the required fields and dependencies)
+ */
+bool algorithm_config_is_valid(const YAML::Node& config);
+
+/*!
+ * Parse algorithm configuration from YAML object into algorithm_config_t object
+ * @param config YAML node read from the configuration file
+ */
+algorithm_config_t parse_algorithm_config(const YAML::Node& config);
+
+/*!
+ * Read points from CSV file into vector of points (the polygon is closed if it is not already)
+ */
+std::vector<point_t> read_points_from_csv(const std::string& filename);
+
+/*!
+ * Write points into a CSV file with three columns
+ */
+void write_polygon_into_csv(const std::vector<point_heading_t<double>>& path, const std::string& filename);
 
 #endif //COVERAGE_PLANNER_HPP

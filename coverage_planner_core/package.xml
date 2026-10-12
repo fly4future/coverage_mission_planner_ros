@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>coverage_planner_core</name>
+  <version>0.2.0</version>
+  <description>
+    ROS-free multi-UAV coverage path planner: the EnergyAwareMCPP solver (energy- or time-optimal split of a
+    polygon area among drones).
+  </description>
+  <maintainer email="bohm@fly4future.com">Robin</maintainer>
+  <license>GPL-3.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>yaml-cpp</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

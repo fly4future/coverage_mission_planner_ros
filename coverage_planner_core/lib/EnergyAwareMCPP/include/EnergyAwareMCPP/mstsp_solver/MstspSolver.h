@@ -9,7 +9,7 @@
 #include "ShortestPathCalculator.hpp"
 #include "custom_types.hpp"
 #include "PathCostCalculator.hpp"
-#include <SimpleLogger.h>
+#include "../SimpleLogger.h"
 
 struct metaheuristic_application_error : public std::runtime_error {
     using runtime_error::runtime_error;
