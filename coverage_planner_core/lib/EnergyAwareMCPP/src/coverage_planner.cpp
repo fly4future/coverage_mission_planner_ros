@@ -304,10 +304,9 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
   auto best_initial_rotations = n_best_init_decomp_angles(representative_polygon, algorithm_config.number_of_rotations,
                                                           algorithm_config.decomposition_type);
 
-  std::cout << "Calculated best rotations: " << std::endl;
   for (const auto& rot : best_initial_rotations)
   {
-    std::cout << rot << std::endl;
+    logger->log_debug("Initial decomposition rotation candidate: " + std::to_string(rot));
   }
 
   // Run algorithm for each rotation and save the best result
@@ -325,13 +324,9 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
         all_decomposed_cells.insert(all_decomposed_cells.end(), decomposed_cells.begin(), decomposed_cells.end());
     }
 
-    std::cout << "All areas decomposed for rotation " << rotation << ". Total cells: " << all_decomposed_cells.size() << std::endl;
-    for (const auto &p: all_decomposed_cells) {
-        std::cout << "  - Decomposed sub polygon area: " << p.area() << std::endl;
-    }
+    logger->log_debug("All areas decomposed for rotation " + std::to_string(rotation) + ". Total cells: " + std::to_string(all_decomposed_cells.size()));
 
     // Divide large polygons into smaller ones to meet the constraint on the lowest number of sub polygons
-    std::cout << "Dividing large polygons into smaller ones" << std::endl;
     std::vector<MapPolygon> polygons_divided;
     try
     {
@@ -339,7 +334,7 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
     }
     catch (std::runtime_error& e)
     {
-      std::cout << "ERROR while dividing polygon: " << e.what() << std::endl;
+      logger->log_err(std::string("Error while dividing polygon: ") + e.what());
       return best_solution;
     }
 
@@ -347,7 +342,6 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
     {
       p = p.rotated(-rotation);
     }
-    std::cout << "Divided large polygons into smaller ones" << std::endl;
 
     // Create the configuration for MSTSP solver
     auto starting_point = algorithm_config.points_in_lat_lon ? gps_coordinates_to_meters(algorithm_config.start_pos, algorithm_config.lat_lon_origin)
@@ -373,7 +367,7 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
     {
         best_solution_cost = solver_res.max_path_energy;
         best_solution = solver_res;
-        std::cout << "Best solution rotation: " << rotation / M_PI * 180 << std::endl;
+        logger->log_info("Best solution rotation so far: " + std::to_string(rotation / M_PI * 180) + " deg");
     }
   }
   return best_solution;
