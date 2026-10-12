@@ -57,6 +57,13 @@ install(TARGETS coverage_planner_cli RUNTIME DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY ${MCPP_DIR}/sample_configs ${MCPP_DIR}/scripts DESTINATION share/${PROJECT_NAME})
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_planner test/test_planner.cpp TIMEOUT 600)
+  target_link_libraries(test_planner ${PROJECT_NAME})
+  target_compile_definitions(test_planner PRIVATE SAMPLE_CONFIGS_DIR="${MCPP_DIR}/sample_configs")
+endif()
+
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
 ament_export_dependencies(yaml-cpp)
 ament_package()
