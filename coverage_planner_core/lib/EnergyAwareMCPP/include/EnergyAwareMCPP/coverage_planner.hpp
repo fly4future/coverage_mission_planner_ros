@@ -50,6 +50,7 @@ struct algorithm_config_t
     std::vector<drone_spec_t> drones;
 
     uint64_t seed = 0;            // base seed of the solver's random generator (rotation i uses seed + i)
+    double time_budget_s = 0.0;   // wall-clock budget for all rotations together; 0 = unlimited
 };
 
 /* generate_with_constraints() //{ */

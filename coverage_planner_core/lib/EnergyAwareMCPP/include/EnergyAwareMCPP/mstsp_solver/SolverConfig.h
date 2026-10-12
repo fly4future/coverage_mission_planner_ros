@@ -22,6 +22,8 @@ namespace mstsp_solver {
 
         // Seed of the solver's random generator. The same seed (and inputs) gives the same solution.
         uint64_t seed = 0;
+        // Wall-clock budget of the tabu search [s]; 0 = only max_not_improving_iterations stops it.
+        double time_budget_s = 0;
 
         int p1 = 1;
         int p2 = 5;

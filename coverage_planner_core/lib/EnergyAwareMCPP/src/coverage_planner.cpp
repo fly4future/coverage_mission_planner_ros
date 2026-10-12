@@ -277,6 +277,7 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
   algorithm_config.rotations_per_cell = config["rotations_per_cell"].as<int>();
   algorithm_config.no_improvement_cycles_before_stop = config["no_improvement_cycles_before_stop"].as<int>();
   algorithm_config.seed = config["seed"] ? config["seed"].as<uint64_t>() : 0;
+  algorithm_config.time_budget_s = config["time_budget_s"] ? config["time_budget_s"].as<double>() : 0.0;
 
   return algorithm_config;
 }
@@ -359,8 +360,9 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
                                               0,
                                               algorithm_config.no_improvement_cycles_before_stop};
     solver_config.wall_distance = algorithm_config.sweeping_step / 2;
-    // one deterministic seed per rotation
+    // one deterministic seed per rotation; the time budget is shared evenly between rotations
     solver_config.seed          = algorithm_config.seed + rotation_idx;
+    solver_config.time_budget_s = algorithm_config.time_budget_s / static_cast<double>(best_initial_rotations.size());
     mstsp_solver::MstspSolver solver(solver_config, polygons_divided, cost_calculators, shortest_path_calculator);
     solver.set_logger(logger);
 

@@ -4,6 +4,7 @@
 #include "algorithms.hpp"
 #include "PathCostCalculator.hpp"
 #include <algorithm>
+#include <chrono>
 #include <list>
 #include <queue>
 
@@ -286,6 +287,7 @@ namespace mstsp_solver
   final_solution_t MstspSolver::solve() const
   {
     m_logger->log_info("Solving started");
+    const auto solve_start = std::chrono::steady_clock::now();
     _instance_solution_t init_solution = greedy_random();
     size_t nodes = 0;
     for (const auto& uav_path : init_solution)
@@ -405,6 +407,13 @@ namespace mstsp_solver
       // g1_score += m_config.p1;
       if (no_improvement_iteration >= m_config.max_not_improving_iterations)
       {
+        stop_criteria = true;
+      }
+      if (m_config.time_budget_s > 0
+          && std::chrono::duration<double>(std::chrono::steady_clock::now() - solve_start).count() >= m_config.time_budget_s)
+      {
+        m_logger->log_info("Time budget of " + std::to_string(m_config.time_budget_s) + " s reached after " + std::to_string(iteration)
+                           + " iterations");
         stop_criteria = true;
       }
     }
