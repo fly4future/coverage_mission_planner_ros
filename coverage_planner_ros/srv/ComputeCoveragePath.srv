@@ -1,0 +1,29 @@
+# Plan coverage paths for several drones over one or more areas.
+# Every position and polygon point is GPS: x = latitude, y = longitude (z ignored unless stated).
+
+string[] drone_names                        # one per initial position; empty = uav1..uavN
+geometry_msgs/Point[] initial_drone_positions
+geometry_msgs/Point[] end_slots             # empty = every drone returns to its start; otherwise one slot per drone,
+                                            # assigned to the drones by sweep-end position
+GeoPolygon[] fly_zones                      # areas to cover
+GeoPolygon[] no_fly_zones
+GeoPolygon[] hr_no_fly_zones              # height-restricted no-fly zones
+float64[] hr_no_fly_depths                  # ceiling of each height-restricted zone [m], parallel to hr_no_fly_zones
+float64[] min_horizontal_distances          # per drone; shorter arrays are padded with the last value (default 5 m)
+float64[] min_vertical_distances            # per drone; shorter arrays are padded with the last value (default 2.5 m)
+float64 sweeping_height                     # [m]; <= 0 = 5 m
+float64 sweeping_step                       # lane spacing [m]; <= 0 = config default
+float64 max_altitude                        # [m]; <= 0 = no limit
+float64 latitude_origin                     # origin of the internal metric frame; 0,0 = node parameter
+float64 longitude_origin
+int64 seed                                  # < 0 = random
+---
+bool success
+string message
+uint64 seed                                 # seed actually used (reproduce with it)
+string[] drone_names                        # same order as drone_paths
+mrs_msgs/TrajectoryReference[] drone_paths  # header.frame_id = latlon_origin; position.x = latitude, position.y = longitude
+uint32[] sweep_begin_indices                # first sweep point of each path (points before it are transit)
+uint32[] sweep_end_indices                  # one past the last sweep point
+bool[] has_sweep                            # false = the drone got no area, its path is a plain transit
+float64[] costs                             # per path, in the cost model's unit (s or J)

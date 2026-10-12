@@ -1,0 +1,7 @@
+/**:
+  ros__parameters:
+    # Empty = coverage_planner_core's default_planner.yaml
+    config_file: ""
+    # Fallback origin of the internal metric frame (a request with latitude_origin/longitude_origin overrides it)
+    latitude_origin: 0.0
+    longitude_origin: 0.0
