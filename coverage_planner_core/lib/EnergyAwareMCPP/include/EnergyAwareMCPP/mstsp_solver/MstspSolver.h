@@ -3,6 +3,7 @@
 
 #include "SolverConfig.h"
 #include "TargetSet.h"
+#include <random>
 #include <vector>
 #include "MapPolygon.hpp"
 #include "Target.h"
@@ -90,6 +91,14 @@ namespace mstsp_solver {
         std::vector<std::shared_ptr<PathCostCalculator>> m_cost_calculators;
         const ShortestPathCalculator m_shortest_path_calculator;
         double m_cost_constant = 0.0001;
+        // Per-solver generator (seeded from SolverConfig::seed) instead of a process-wide static one,
+        // so that solutions are reproducible and independent solvers can run concurrently.
+        mutable std::mt19937_64 m_rng;
+
+        /*!
+         * @return random number in range [0, max(int)] drawn from this solver's generator
+         */
+        int random_number() const;
 
         /*!
          * Generate a solution using a greedy random method

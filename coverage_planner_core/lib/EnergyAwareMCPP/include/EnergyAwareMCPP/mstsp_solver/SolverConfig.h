@@ -6,6 +6,7 @@
 #define THESIS_TRAJECTORY_GENERATOR_SOLVERCONFIG_H
 
 #include "utils.hpp"
+#include <cstdint>
 #include <vector>
 
 namespace mstsp_solver {
@@ -18,6 +19,9 @@ namespace mstsp_solver {
         double unique_alt_step = 1.0; // 1m difference while not sweeping by default
         int max_not_improving_iterations = 0;
         double wall_distance = 0;
+
+        // Seed of the solver's random generator. The same seed (and inputs) gives the same solution.
+        uint64_t seed = 0;
 
         int p1 = 1;
         int p2 = 5;

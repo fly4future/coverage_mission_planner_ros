@@ -14,6 +14,7 @@
 #include "SimpleLogger.h"
 #include "utils.hpp"
 #include <iomanip>
+#include <cstdint>
 #include <optional>
 
 struct hr_nfz_file_t {
@@ -47,6 +48,8 @@ struct algorithm_config_t
     int rotations_per_cell;
     int no_improvement_cycles_before_stop;
     std::vector<drone_spec_t> drones;
+
+    uint64_t seed = 0;            // base seed of the solver's random generator (rotation i uses seed + i)
 };
 
 /* generate_with_constraints() //{ */

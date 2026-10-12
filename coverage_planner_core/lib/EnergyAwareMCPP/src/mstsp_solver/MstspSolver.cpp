@@ -57,13 +57,23 @@ namespace mstsp_solver
       : m_logger(std::make_shared<loggers::SimpleLogger>()),
         m_config(std::move(config)),
         m_cost_calculators(std::move(cost_calculators)),
-        m_shortest_path_calculator(std::move(shortest_path_calculator))
+        m_shortest_path_calculator(std::move(shortest_path_calculator)),
+        m_rng(m_config.seed)
   {
 
     for (size_t i = 0; i < decomposed_polygons.size(); ++i)
     {
       m_target_sets.emplace_back(i, decomposed_polygons[i], m_config.sweeping_step, m_config.wall_distance, &m_cost_calculators, m_config.rotations_per_cell);
     }
+  }
+  //}
+
+  /* random_number() //{ */
+
+  int MstspSolver::random_number() const
+  {
+    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<int>::max());
+    return distribution(m_rng);
   }
   //}
 
@@ -160,7 +170,7 @@ namespace mstsp_solver
       m_logger->log_debug("Possible insertions number " + std::to_string(possible_insertions.size()));
       size_t size_reduced = possible_insertions.size() / 4;
       // Could generate random numbers better, but let it be. We don't need a perfect uniformity
-      size_t random = generate_random_number() % (size_reduced + 1);
+      size_t random = random_number() % (size_reduced + 1);
       if (random >= possible_insertions.size())
       {
         random = possible_insertions.size() - 1;
@@ -315,7 +325,7 @@ namespace mstsp_solver
       {
         _instance_solution_t tabu_solution = best_neighbourhood_solution;
         int total_score = g1_score + g2_score + g3_score + g4_score;
-        int random = generate_random_number() % total_score;
+        int random = random_number() % total_score;
         if (random < g1_score)
         {
           get_g1_solution(tabu_solution);
@@ -415,29 +425,29 @@ namespace mstsp_solver
     size_t index_a1, index_a2;
     do
     {
-      index_a1 = generate_random_number() % routes;
+      index_a1 = random_number() % routes;
     } while (solution[index_a1].size() < 2);
 
-    size_t index_c2, index_c1 = generate_random_number() % solution[index_a1].size();
+    size_t index_c2, index_c1 = random_number() % solution[index_a1].size();
 
     Target target_to_move = solution[index_a1][index_c1];
     solution[index_a1].erase(solution[index_a1].begin() + static_cast<long>(index_c1));
 
-    if (generate_random_number() % 2 == 0 || solution.size() == 1)
+    if (random_number() % 2 == 0 || solution.size() == 1)
     {  // Shift intra route
       index_a2 = index_a1;
       do
       {
-        index_c2 = generate_random_number() % (solution[index_a1].size() + 1);
+        index_c2 = random_number() % (solution[index_a1].size() + 1);
       } while (index_c1 == index_c2);
       solution[index_a2].emplace(solution[index_a2].begin() + static_cast<long>(index_c2), target_to_move);
     } else
     {
       do
       {
-        index_a2 = generate_random_number() % routes;
+        index_a2 = random_number() % routes;
       } while (index_a2 == index_a1);
-      index_c2 = generate_random_number() % (solution[index_a2].size() + 1);
+      index_c2 = random_number() % (solution[index_a2].size() + 1);
       solution[index_a2].emplace(solution[index_a2].begin() + static_cast<long>(index_c2), target_to_move);
     }
     // Try to rotate the moved target and find the best rotation
@@ -479,10 +489,10 @@ namespace mstsp_solver
     size_t index_a1;
     do
     {
-      index_a1 = generate_random_number() % routes;
+      index_a1 = random_number() % routes;
     } while (solution[index_a1].size() < 2);
 
-    size_t index_c1 = generate_random_number() % solution[index_a1].size();
+    size_t index_c1 = random_number() % solution[index_a1].size();
 
     solution_cost_t best_solution_cost = solution_cost_t::max();
     size_t target_in_target_set_index = 0;
@@ -543,10 +553,10 @@ namespace mstsp_solver
     size_t index_a1;
     do
     {
-      index_a1 = generate_random_number() % routes;
+      index_a1 = random_number() % routes;
     } while (solution[index_a1].size() < 2);
 
-    size_t index_c1 = generate_random_number() % solution[index_a1].size();
+    size_t index_c1 = random_number() % solution[index_a1].size();
     size_t index_a2 = index_a1, index_c2 = index_c1;
 
     auto best_solution_cost = solution_cost_t::max();
@@ -604,10 +614,10 @@ namespace mstsp_solver
     size_t index_a1;
     do
     {
-      index_a1 = generate_random_number() % routes;
+      index_a1 = random_number() % routes;
     } while (solution[index_a1].size() < 2);
 
-    size_t index_c1 = generate_random_number() % solution[index_a1].size();
+    size_t index_c1 = random_number() % solution[index_a1].size();
 
     double best_path_cost = get_path_cost(solution[index_a1], index_a1);
     Target best_target = solution[index_a1][index_c1];

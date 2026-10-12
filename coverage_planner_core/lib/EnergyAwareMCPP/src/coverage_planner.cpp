@@ -276,6 +276,7 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
   algorithm_config.start_pos = {config["start_x"].as<double>(), config["start_y"].as<double>()};
   algorithm_config.rotations_per_cell = config["rotations_per_cell"].as<int>();
   algorithm_config.no_improvement_cycles_before_stop = config["no_improvement_cycles_before_stop"].as<int>();
+  algorithm_config.seed = config["seed"] ? config["seed"].as<uint64_t>() : 0;
 
   return algorithm_config;
 }
@@ -311,8 +312,9 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
   // Run algorithm for each rotation and save the best result
   double best_solution_cost = std::numeric_limits<double>::max();
   mstsp_solver::final_solution_t best_solution;
-  for (const auto& rotation : best_initial_rotations)
+  for (size_t rotation_idx = 0; rotation_idx < best_initial_rotations.size(); ++rotation_idx)
   {
+    const double rotation = best_initial_rotations[rotation_idx];
     std::vector<MapPolygon> all_decomposed_cells;
 
     // Decompose each search area using the current rotation and collect all resulting cells
@@ -357,6 +359,8 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
                                               0,
                                               algorithm_config.no_improvement_cycles_before_stop};
     solver_config.wall_distance = algorithm_config.sweeping_step / 2;
+    // one deterministic seed per rotation
+    solver_config.seed          = algorithm_config.seed + rotation_idx;
     mstsp_solver::MstspSolver solver(solver_config, polygons_divided, cost_calculators, shortest_path_calculator);
     solver.set_logger(logger);
 
