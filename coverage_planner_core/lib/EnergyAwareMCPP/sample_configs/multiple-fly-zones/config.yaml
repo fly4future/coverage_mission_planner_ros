@@ -30,24 +30,18 @@ propeller_efficiency: 0.391
 
 drones:
   - optimization_type: "time"
-    max_horizontal_speed: 10.0  
-    max_vertical_speed: 2.0
-    horizontal_acceleration: 2.0
-    vertical_acceleration: 1.0
-    allowed_path_deviation: 2.0
-    max_single_path_cost: 20.0 # Maximum time [sec]
-  - optimization_type: "time"
-    max_horizontal_speed: 10.0
-    max_vertical_speed: 2.0
-    horizontal_acceleration: 2.0
-    vertical_acceleration: 1.0
+    max_speed: 10.0
+    max_acceleration: 2.0
     allowed_path_deviation: 2.0
     max_single_path_cost: 3600.0 # Maximum time [sec]
   - optimization_type: "time"
-    max_horizontal_speed: 10.0
-    max_vertical_speed: 2.0
-    horizontal_acceleration: 2.0
-    vertical_acceleration: 1.0
+    max_speed: 10.0
+    max_acceleration: 2.0
+    allowed_path_deviation: 2.0
+    max_single_path_cost: 3600.0 # Maximum time [sec]
+  - optimization_type: "time"
+    max_speed: 10.0
+    max_acceleration: 2.0
     allowed_path_deviation: 2.0
     max_single_path_cost: 3600.0 # Maximum time [sec]
 

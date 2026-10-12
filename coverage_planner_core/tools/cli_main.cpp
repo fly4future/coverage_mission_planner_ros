@@ -1,6 +1,8 @@
 // Command-line front end of the EnergyAwareMCPP library (formerly the library's own main()).
 // Usage: coverage_planner_cli <algorithm_configuration>.yaml   -> writes path_<i>.csv into the working directory
 
+#include <filesystem>
+
 #include <coverage_planner.hpp>
 
 int main(int argc, char *argv[]) {
@@ -8,7 +10,8 @@ int main(int argc, char *argv[]) {
         std::cerr << "Error. Usage: coverage_planner_cli <algorithm_configuration>.yaml" << std::endl;
         return -1;
     }
-    YAML::Node algorithm_config_node = YAML::LoadFile(argv[1]);
+    const std::filesystem::path config_path(argv[1]);
+    YAML::Node algorithm_config_node = YAML::LoadFile(config_path.string());
     if (!algorithm_config_is_valid(algorithm_config_node)) {
         std::cerr << "Algorithm config is not complete. Exiting..." << std::endl;
         return -1;
@@ -16,6 +19,14 @@ int main(int argc, char *argv[]) {
     algorithm_config_t algorithm_config;
     try {
         algorithm_config = parse_algorithm_config(algorithm_config_node);
+        // CSV paths in the config are relative to the config file, not to the working directory
+        const auto resolve = [&config_path](const std::string& f) {
+            const std::filesystem::path p(f);
+            return p.is_absolute() ? f : (config_path.parent_path() / p).string();
+        };
+        for (auto& f : algorithm_config.fly_zone_points_files) f = resolve(f);
+        for (auto& f : algorithm_config.no_fly_zone_points_files) f = resolve(f);
+        for (auto& f : algorithm_config.hr_no_fly_zone_files) f.filename = resolve(f.filename);
     } catch (const YAML::Exception &e) {
         std::cout << "Error while parsing YAML configuration file: " << e.what() << std::endl;
         return -1;

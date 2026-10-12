@@ -178,10 +178,7 @@ bool algorithm_config_is_valid(const YAML::Node &config) {
             }
 
         } else if (current_optimization_type == "time") {
-            const std::vector<std::string> time_keys = {
-                "max_horizontal_speed", "max_vertical_speed", "horizontal_acceleration",
-                "vertical_acceleration", "allowed_path_deviation"
-            };
+            const std::vector<std::string> time_keys = {"max_speed", "max_acceleration", "allowed_path_deviation"};
             for (const auto& key : time_keys) {
                 if (!check_key(drone_node, key)) {
                     std::cerr << "Error: Drone with 'time' optimization is missing key '" << key << "'." << std::endl;
@@ -271,7 +268,8 @@ algorithm_config_t parse_algorithm_config(const YAML::Node& config) {
         algorithm_config.fly_zone_points_files = config["fly_zone_filenames"].as<std::vector<std::string>>();
     }
 
-  algorithm_config.sweeping_step = config["sweeping_step"].as<int>();
+  algorithm_config.sweeping_step = config["sweeping_step"].as<double>();
+  algorithm_config.sweeping_alt = config["sweeping_alt"] ? config["sweeping_alt"].as<double>() : 0.0;
   algorithm_config.decomposition_type = static_cast<decomposition_type_t>(config["decomposition_method"].as<int>());
   algorithm_config.min_sub_polygons_per_uav = config["min_sub_polygons_per_uav"].as<int>();
 
