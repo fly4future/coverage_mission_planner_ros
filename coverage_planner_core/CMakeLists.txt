@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(coverage_planner_core)
 
-# ROS-free multi-UAV coverage planner: the EnergyAwareMCPP solver (lib/). Only depends on yaml-cpp; ament_cmake is
-# used for packaging.
+# ROS-free multi-UAV coverage planner: the EnergyAwareMCPP solver (lib/) plus the planning pipeline formerly in
+# iroc_fleet_manager's CoveragePlanner plugin (src/). Only depends on yaml-cpp; ament_cmake is used for packaging.
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,8 +32,12 @@ add_library(${PROJECT_NAME} SHARED
   ${MCPP_DIR}/src/ShortestPathCalculator.cpp
   ${MCPP_DIR}/src/mstsp_solver/TargetSet.cpp
   ${MCPP_DIR}/src/mstsp_solver/MstspSolver.cpp
+  src/config.cpp
+  src/planner.cpp
+  src/transit_heights.cpp
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${MCPP_DIR}/include>
   $<BUILD_INTERFACE:${MCPP_DIR}/include/EnergyAwareMCPP>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
@@ -45,10 +49,12 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${YAML_CPP_TARGET})
 add_executable(coverage_planner_cli tools/cli_main.cpp)
 target_link_libraries(coverage_planner_cli ${PROJECT_NAME})
 
+install(DIRECTORY include/ DESTINATION include/${PROJECT_NAME})
 install(DIRECTORY ${MCPP_DIR}/include/ DESTINATION include/${PROJECT_NAME})
 install(TARGETS ${PROJECT_NAME} EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
 install(TARGETS coverage_planner_cli RUNTIME DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY ${MCPP_DIR}/sample_configs ${MCPP_DIR}/scripts DESTINATION share/${PROJECT_NAME})
 
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)

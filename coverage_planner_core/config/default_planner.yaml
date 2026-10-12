@@ -1,0 +1,35 @@
+# Default configuration of coverage_planner_core (same layout as iroc_fleet_manager's coverage_planner_config.yaml).
+#
+# All drones share one cost model: the solver balances the paths assuming identical drones.
+
+# --- solver tuning ---
+number_of_rotations: 3                  # initial decomposition rotations to try (runtime grows linearly)
+decomposition_method: 1                 # 0 trapezoidal, 1 boustrophedon, 2 boustrophedon with convex polygons
+min_sub_polygons_per_uav: 1
+rotations_per_cell: 4
+no_improvement_cycles_before_stop: 400
+sweeping_step: 6.0                      # default lane spacing [m] (a request may override it)
+time_budget_s: 10.0                     # wall-clock cap on the tabu search; keeps on-board planning bounded
+
+# --- cost model ---
+drones:
+  - optimization_type: "time"           # "time" [s] or "energy" [J]
+    max_speed: 4.0                      # [m/s]; keep at or below the MRS constraint profile in use
+    max_acceleration: 2.0               # [m/s^2]
+    allowed_path_deviation: 2.0         # [m] corner cutting allowed in turns
+    max_single_path_cost: 1800.0        # [s] longest acceptable path per drone
+
+# Parameters of the energy model (used with optimization_type: "energy"):
+#  - optimization_type: "energy"
+#    drone_mass: 3.2
+#    drone_area: 0.07
+#    propeller_radius: 0.19
+#    number_of_propellers: 4
+#    average_acceleration: 2.0
+#    allowed_path_deviation: 2.0
+#    battery_model: {cell_capacity: 5, number_of_cells: 4, d0: 0.99876, d1: -0.0020, d2: -5.2484e-05, d3: 1.2230e-07}
+#    best_speed_model: {c0: 0.041546, c1: 0.041122, c2: 0.00053292}
+#    max_single_path_cost: 1000000000
+air_density: 1.225
+earth_gravity: 9.81
+propeller_efficiency: 0.391

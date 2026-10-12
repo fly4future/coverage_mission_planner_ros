@@ -5,7 +5,8 @@
   <version>0.2.0</version>
   <description>
     ROS-free multi-UAV coverage path planner: the EnergyAwareMCPP solver (energy- or time-optimal split of a
-    polygon area among drones).
+    polygon area among drones) plus the planning pipeline (assignment, transit paths, transit-height
+    deconfliction) ported from iroc_fleet_manager's CoveragePlanner plugin.
   </description>
   <maintainer email="bohm@fly4future.com">Robin</maintainer>
   <license>GPL-3.0</license>
